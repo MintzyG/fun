@@ -15,6 +15,7 @@ type Response struct {
 	Timestamp      time.Time       `json:"timestamp,omitempty"`
 	PaginationData *PaginationMeta `json:"pagination,omitempty"`
 	Code           int             `json:"code,omitempty"`
+  ErrorID        string          `json:"error_id,omitempty"`
 	ContentType    string          `json:"-"`
 	TracePrefix    string          `json:"-"`
 	config         Config          `json:"-"`
@@ -70,6 +71,11 @@ func (r *Response) WithData(data any) *Response {
 func (r *Response) WithTracePrefix(prefix string) *Response {
 	r.TracePrefix = prefix
 	return r
+}
+
+func (r *Response) WithErrID(id string) *Response {
+  r.ErrorID = id
+  return r
 }
 
 // Does nothing unless using a custom response
