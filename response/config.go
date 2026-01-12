@@ -9,6 +9,7 @@ type Config struct {
 	DefaultContentType   string
 	EnableSizeValidation bool
 	DefaultModule        string
+	ErrorHandler         ErrorHandler // Custom error handler for FromError
 }
 
 // Default configuration values
@@ -19,6 +20,7 @@ var defaultConfig = Config{
 	DefaultContentType:   "application/json",
 	EnableSizeValidation: true,
 	DefaultModule:        "GoResponse",
+	ErrorHandler:         nil, // Will use defaultErrorHandler
 }
 
 // Global configuration (thread-safe)
@@ -52,6 +54,13 @@ func SetConfig(config Config) {
 	}
 
 	globalConfig = config
+
+	// Update the error handler if provided
+	if config.ErrorHandler != nil {
+		errorHandlerMu.Lock()
+		errorHandler = config.ErrorHandler
+		errorHandlerMu.Unlock()
+	}
 }
 
 // GetConfig returns a copy of the current global configuration

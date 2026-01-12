@@ -27,6 +27,7 @@ func init() {
 
 // RegisterErrorHandler sets a custom error handler function
 // This function will be used by FromError to convert errors into responses
+// Note: It's recommended to set this via Config.ErrorHandler instead
 func RegisterErrorHandler(handler ErrorHandler) {
 	if handler == nil {
 		handler = defaultErrorHandler
