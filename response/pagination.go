@@ -1,6 +1,7 @@
 package response
 
 import (
+	"log"
 	"net/url"
 	"strconv"
 )
@@ -72,6 +73,10 @@ func CreatePaginationMeta(params PaginationParams, total int64) PaginationMeta {
 }
 
 func (r *Response) WithPagination(params PaginationParams, total int64) *Response {
+	if r == nil {
+		log.Println("WARNING: WithPagination called on nil Response")
+		return nil
+	}
 	meta := CreatePaginationMeta(params, total)
 	r.PaginationData = &meta
 	return r

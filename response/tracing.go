@@ -1,9 +1,16 @@
 package response
 
-import "fmt"
+import (
+	"fmt"
+	"log"
+)
 
 // Takes in strings, errors and Stringers
 func (r *Response) AddTrace(trace ...any) *Response {
+	if r == nil {
+		log.Println("WARNING: AddTrace called on nil Response")
+		return nil
+	}
 	if r.TracePrefix == "" {
 		return r.appendTrace("trace", false, trace...)
 	}
@@ -12,6 +19,10 @@ func (r *Response) AddTrace(trace ...any) *Response {
 
 // Takes in strings, errors and Stringers
 func (r *Response) AddPrefixedTrace(prefix string, trace ...any) *Response {
+	if r == nil {
+		log.Println("WARNING: AddPrefixedTrace called on nil Response")
+		return nil
+	}
 	if prefix == "" {
 		return r.appendTrace("trace", false, trace...)
 	}
@@ -20,11 +31,19 @@ func (r *Response) AddPrefixedTrace(prefix string, trace ...any) *Response {
 
 // AppendTraceInternal is for internal use and can override the last trace entry when full
 func (r *Response) appendTraceInternal(prefix string, trace ...any) *Response {
+	if r == nil {
+		log.Println("WARNING: appendTraceInternal called on nil Response")
+		return nil
+	}
 	return r.appendTrace(prefix, true, trace...)
 }
 
 // Internal trace appending logic
 func (r *Response) appendTrace(prefix string, force bool, trace ...any) *Response {
+	if r == nil {
+		log.Println("WARNING: appendTrace called on nil Response")
+		return nil
+	}
 	config := r.getResponseConfig()
 
 	for _, t := range trace {

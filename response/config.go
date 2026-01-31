@@ -1,6 +1,9 @@
 package response
 
-import "sync"
+import (
+	"log"
+	"sync"
+)
 
 type Config struct {
 	MaxTraceSize         int
@@ -80,6 +83,10 @@ func getConfig() Config {
 // getResponseConfig returns the config for this specific response
 // Falls back to global config if no specific config is set
 func (r *Response) getResponseConfig() Config {
+	if r == nil {
+		log.Println("WARNING: getResponseConfig called on nil Response")
+		return getConfig()
+	}
 	// Check if this response has a specific config set
 	// We detect this by checking if any field differs from zero value
 	if r.config.MaxTraceSize > 0 || r.config.ResponseSizeLimit > 0 ||
