@@ -7,6 +7,11 @@ import (
 )
 
 func newBaseResponse(code int, msg ...string) *Response {
+	if err := validateStatusCode(code); err != nil {
+		log.Printf("WARNING: newBaseResponse called with invalid status code %d: %v. Response will be sent as 500.", code, err)
+    code = 500
+	}
+
 	var message string
 	if len(msg) > 0 {
 		message = msg[0]

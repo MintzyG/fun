@@ -114,11 +114,9 @@ func (r *Response) WithCode(code int) *Response {
 		return nil
 	}
 	if err := validateStatusCode(code); err != nil {
-		return InternalServerError("Invalid status code set").
-			appendTraceInternal("error", err)
-	} else {
-		r.Code = code
+		log.Printf("WARNING: Invalid status code %d set. Response will not be sent.", code)
 	}
+	r.Code = code
 	return r
 }
 
@@ -147,10 +145,8 @@ func (r *Response) SendWithContext(ctx context.Context, w http.ResponseWriter) {
 	}
 
 	if err := r.validateResponseSize(); err != nil {
-		// Create a new error response that fits within limits
-		errorResp := r.WithCode(http.StatusInternalServerError).WithContentType(getConfig().DefaultContentType)
-		errorResp.sendInternal(ctx, w)
-		return
+		log.Printf("WARNING: Attempted to send response with invalid status code %d: %v. Response will be sent. as 500", r.Code, err)
+		r.Code = 500
 	}
 
 	r.sendInternal(ctx, w)
@@ -165,6 +161,11 @@ func (r *Response) sendInternal(ctx context.Context, w http.ResponseWriter) {
 	if w == nil {
 		log.Println("WARNING: sendInternal called with nil ResponseWriter")
 		return
+	}
+
+	if err := validateStatusCode(r.Code); err != nil {
+		log.Printf("WARNING: Attempted to send response with invalid status code %d: %v. Response will be sent. as 500", r.Code, err)
+		r.Code = 500
 	}
 
 	interceptorsMu.RLock()
