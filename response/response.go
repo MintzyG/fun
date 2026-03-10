@@ -187,6 +187,8 @@ func (r *Response) sendInternal(ctx context.Context, w http.ResponseWriter) {
 	w.WriteHeader(r.Code)
 
 	encoder := json.NewEncoder(w)
+	encoder.SetEscapeHTML(false)
+
 	if err := encoder.Encode(r); err != nil {
 		// If encoding fails, we can't send the original response so we leave it to Interceptors
 		r.appendTraceInternal("internal error", (&EncodingError{Inner: err}).Error())
