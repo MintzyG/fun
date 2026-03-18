@@ -13,6 +13,7 @@ type Config struct {
 	EnableSizeValidation bool
 	DefaultModule        string
 	ErrorHandler         ErrorHandler // Custom error handler for FromError
+	IsDevelopment        bool         // If false, AppError.Debug is stripped before send
 }
 
 // Default configuration values

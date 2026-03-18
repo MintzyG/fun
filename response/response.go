@@ -17,6 +17,7 @@ type Response struct {
 	PaginationData *PaginationMeta `json:"pagination,omitempty"`
 	Code           int             `json:"code,omitempty"`
 	ErrorID        string          `json:"error_id,omitempty"`
+	AppError       *AppError       `json:"error,omitempty"`
 	ContentType    string          `json:"-"`
 	TracePrefix    string          `json:"-"`
 	config         Config          `json:"-"`
@@ -166,6 +167,13 @@ func (r *Response) sendInternal(ctx context.Context, w http.ResponseWriter) {
 	if err := validateStatusCode(r.Code); err != nil {
 		log.Printf("WARNING: Attempted to send response with invalid status code %d: %v. Response will be sent. as 500", r.Code, err)
 		r.Code = 500
+	}
+
+	// Strip AppError.Debug in non-development environments.
+	if r.AppError != nil && r.AppError.Debug != nil {
+		if !r.getResponseConfig().IsDevelopment {
+			r.AppError.Debug = nil
+		}
 	}
 
 	interceptorsMu.RLock()
