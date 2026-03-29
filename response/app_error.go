@@ -120,6 +120,13 @@ func NewErrorf(format string, args ...any) *AppErrorBuilder {
 	return &AppErrorBuilder{message: fmt.Sprintf(format, args...)}
 }
 
+func (b *AppErrorBuilder) WithErrors(errs ...error) *AppErrorBuilder {
+	for _, err := range errs {
+		b.WithFields(err)
+	}
+	return b
+}
+
 // WithFields attaches field-level validation errors.
 func (b *AppErrorBuilder) WithFields(fields ...any) *AppErrorBuilder {
 	for _, f := range fields {
