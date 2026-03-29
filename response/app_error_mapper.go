@@ -57,7 +57,7 @@ func resolveAppError(err error) *AppError {
 
 	// 1. Already an AppError.
 	var ae *AppError
-	if asAppError(err, &ae) {
+	if errors.As(err, &ae) {
 		return ae
 	}
 
@@ -82,24 +82,4 @@ func resolveAppError(err error) *AppError {
 		Message: err.Error(),
 		Err:     err,
 	}
-}
-
-// asAppError is a helper to avoid importing "errors" at call sites.
-// It mirrors errors.As but is contained here to keep the mapper file self-contained.
-func asAppError(err error, target **AppError) bool {
-	for err != nil {
-		var ae *AppError
-		if errors.As(err, &ae) {
-			*target = ae
-			return true
-		}
-		// Walk the chain via Unwrap.
-		type unwrapper interface{ Unwrap() error }
-		u, ok := err.(unwrapper)
-		if !ok {
-			break
-		}
-		err = u.Unwrap()
-	}
-	return false
 }

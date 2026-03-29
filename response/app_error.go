@@ -2,24 +2,27 @@ package response
 
 import "fmt"
 
+type ErrorCode string
+
 // Sentinel error codes and their HTTP status mappings.
 const (
-	ErrInternal   = "INTERNAL_ERROR"   // 500
-	ErrValidation = "VALIDATION_ERROR" // 400
-	ErrAuth       = "UNAUTHORIZED"     // 401
-	ErrForbidden  = "FORBIDDEN"        // 403
-	ErrNotFound   = "NOT_FOUND"        // 404
-	ErrConflict   = "CONFLICT"         // 409
+	ErrBadRequest   ErrorCode = "BAD_REQUEST"      // HTTP 400 | gRPC INVALID_ARGUMENT (3)
+	ErrValidation   ErrorCode = "VALIDATION_ERROR" // HTTP 400 | gRPC INVALID_ARGUMENT (3)
+	ErrUnauthorized ErrorCode = "UNAUTHORIZED"     // HTTP 401 | gRPC UNAUTHENTICATED 16
+	ErrForbidden    ErrorCode = "FORBIDDEN"        // HTTP 403 | gRPC PERMISSION_DENIED 7
+	ErrNotFound     ErrorCode = "NOT_FOUND"        // HTTP 404 | gRPC NOT_FOUND 5
+	ErrConflict     ErrorCode = "CONFLICT"         // HTTP 409 | gRPC ALREADY_EXISTS 6
+	ErrInternal     ErrorCode = "INTERNAL_ERROR"   // HTTP 500 | gRPC INTERNAL 13
 )
 
 // appErrorStatusMap maps sentinel codes to HTTP status codes.
-var appErrorStatusMap = map[string]int{
-	ErrInternal:   500,
-	ErrValidation: 400,
-	ErrAuth:       401,
-	ErrForbidden:  403,
-	ErrNotFound:   404,
-	ErrConflict:   409,
+var appErrorStatusMap = map[ErrorCode]int{
+	ErrValidation:   400,
+	ErrUnauthorized: 401,
+	ErrForbidden:    403,
+	ErrNotFound:     404,
+	ErrConflict:     409,
+	ErrInternal:     500,
 }
 
 // FieldError represents a single field-level validation failure.
@@ -43,7 +46,7 @@ type DebugInfo struct {
 // handling and be detected with errors.As.
 type AppError struct {
 	// Code is a machine-readable sentinel (e.g. ErrNotFound).
-	Code string `json:"code"`
+	Code ErrorCode `json:"code"`
 
 	// Message is the human-readable description sent to the client.
 	Message string `json:"message"`
@@ -75,9 +78,6 @@ func (e *AppError) Unwrap() error {
 
 // httpStatus returns the HTTP status for this error, defaulting to 500.
 func (e *AppError) httpStatus() int {
-	if e.Status != 0 {
-		return e.Status
-	}
 	if s, ok := appErrorStatusMap[e.Code]; ok {
 		return s
 	}
@@ -85,23 +85,94 @@ func (e *AppError) httpStatus() int {
 }
 
 // toResponse converts the AppError into a *Response ready to be sent.
-// Debug is stripped here if not in development mode.
 func (e *AppError) toResponse() *Response {
-	config := getConfig()
-
-	ae := &AppError{
-		Code:    e.Code,
-		Message: e.Message,
-		Fields:  e.Fields,
-		Meta:    e.Meta,
-		// Debug handled below
-	}
-
-	if config.IsDevelopment && e.Debug != nil {
-		ae.Debug = e.Debug
-	}
-
 	r := newBaseResponse(e.httpStatus(), e.Message)
-	r.AppError = ae
+	r.AppError = e
 	return r
+}
+
+// AppErrorBuilder is an intermediate type that holds the message
+// before the error code is chosen.
+type AppErrorBuilder struct {
+	message string
+	fields  []FieldError
+	meta    map[string]any
+	err     error
+}
+
+// NewError starts building an AppError with a plain message.
+func NewError(message string) *AppErrorBuilder {
+	return &AppErrorBuilder{message: message}
+}
+
+// NewErrorf starts building an AppError with a formatted message.
+func NewErrorf(format string, args ...any) *AppErrorBuilder {
+	return &AppErrorBuilder{message: fmt.Sprintf(format, args...)}
+}
+
+// WithFields attaches field-level validation errors.
+func (b *AppErrorBuilder) WithFields(fields ...FieldError) *AppErrorBuilder {
+	b.fields = append(b.fields, fields...)
+	return b
+}
+
+// WithMeta attaches arbitrary key/value context.
+func (b *AppErrorBuilder) WithMeta(key string, value any) *AppErrorBuilder {
+	if b.meta == nil {
+		b.meta = make(map[string]any)
+	}
+	b.meta[key] = value
+	return b
+}
+
+// WithErr attaches the underlying cause for errors.Is/As chains.
+func (b *AppErrorBuilder) WithErr(err error) *AppErrorBuilder {
+	b.err = err
+	return b
+}
+
+func (b *AppErrorBuilder) build(code ErrorCode) *AppError {
+	return &AppError{
+		Code:    code,
+		Message: b.message,
+		Fields:  b.fields,
+		Meta:    b.meta,
+		Err:     b.err,
+	}
+}
+
+// BadRequest HTTP 400 | gRPC INVALID_ARGUMENT (3)
+// Use for malformed requests. Use Validation() instead when you have field-level detail.
+func (b *AppErrorBuilder) BadRequest() *AppError {
+	return b.build(ErrBadRequest)
+}
+
+// Validation HTTP 400 | gRPC INVALID_ARGUMENT (3)
+func (b *AppErrorBuilder) Validation() *AppError {
+	return b.build(ErrValidation)
+}
+
+// Unauthorized HTTP 401 | gRPC UNAUTHENTICATED (16)
+func (b *AppErrorBuilder) Unauthorized() *AppError {
+	return b.build(ErrUnauthorized)
+}
+
+// Forbidden HTTP 403 | gRPC PERMISSION_DENIED (7)
+func (b *AppErrorBuilder) Forbidden() *AppError {
+	return b.build(ErrForbidden)
+}
+
+// NotFound HTTP 404 | gRPC NOT_FOUND (5)
+func (b *AppErrorBuilder) NotFound() *AppError {
+	return b.build(ErrNotFound)
+}
+
+// Conflict HTTP 409 | gRPC ALREADY_EXISTS (6)
+func (b *AppErrorBuilder) Conflict() *AppError {
+	return b.build(ErrConflict)
+}
+
+// Internal HTTP 500 | gRPC INTERNAL (13)
+func (b *AppErrorBuilder) Internal() *AppError {
+	return b.build(ErrInternal)
 }
