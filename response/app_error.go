@@ -1,6 +1,9 @@
 package response
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+)
 
 type ErrorCode string
 
@@ -30,6 +33,13 @@ type FieldError struct {
 	Field   string `json:"field"`
 	Message string `json:"message"`
 	Value   any    `json:"value,omitempty"`
+}
+
+func (e *FieldError) Error() string {
+	if e.Value != nil {
+		return fmt.Sprintf("(%s) %s: %v", e.Field, e.Message, e.Value)
+	}
+	return fmt.Sprintf("(%s) %s", e.Field, e.Message)
 }
 
 // DebugInfo holds development-only diagnostic information.
@@ -111,8 +121,22 @@ func NewErrorf(format string, args ...any) *AppErrorBuilder {
 }
 
 // WithFields attaches field-level validation errors.
-func (b *AppErrorBuilder) WithFields(fields ...FieldError) *AppErrorBuilder {
-	b.fields = append(b.fields, fields...)
+func (b *AppErrorBuilder) WithFields(fields ...any) *AppErrorBuilder {
+	for _, f := range fields {
+		switch v := f.(type) {
+		case FieldError:
+			b.fields = append(b.fields, v)
+		case *FieldError:
+			if v != nil {
+				b.fields = append(b.fields, *v)
+			}
+		case error:
+			var fe *FieldError
+			if errors.As(v, &fe) {
+				b.fields = append(b.fields, *fe)
+			}
+		}
+	}
 	return b
 }
 
