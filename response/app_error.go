@@ -35,7 +35,7 @@ type FieldError struct {
 	Value   any    `json:"value,omitempty"`
 }
 
-func (e *FieldError) Error() string {
+func (e FieldError) Error() string {
 	if e.Value != nil {
 		return fmt.Sprintf("(%s) %s: %v", e.Field, e.Message, e.Value)
 	}
