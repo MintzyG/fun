@@ -1,4 +1,4 @@
-package middleware
+package middlewares
 
 // Package bodymw provides middleware for limiting HTTP request body size.
 import "net/http"

@@ -1,4 +1,4 @@
-package middleware
+package middlewares
 
 // Package metrics provides Prometheus HTTP instrumentation middleware.
 

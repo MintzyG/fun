@@ -1,4 +1,4 @@
-package middleware
+package middlewares
 
 // Package mw provides composable HTTP middleware primitives and semantic helpers.
 import "net/http"

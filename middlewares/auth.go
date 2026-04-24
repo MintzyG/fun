@@ -1,4 +1,4 @@
-package middleware
+package middlewares
 
 // Provides HTTP middleware for Bearer JWT and API key authentication.
 // JWT verification is handled by the package; the caller supplies typed claims and hooks

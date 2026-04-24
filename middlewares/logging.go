@@ -1,4 +1,4 @@
-package middleware
+package middlewares
 
 // Provides structured HTTP request logging middleware.
 import (
