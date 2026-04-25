@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"sync"
 
+	fun "github.com/MintzyG/FastUtilitiesNet"
 	"golang.org/x/time/rate"
 )
 
@@ -70,7 +71,7 @@ func RateLimit(cfg RateLimitConfig) func(http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			key := cfg.KeyExtractor(r)
 			if !rl.get(key).Allow() {
-				http.Error(w, "rate limit exceeded", http.StatusTooManyRequests)
+				fun.TooManyRequests("rate limit exceeded").Send(w)
 				return
 			}
 			next.ServeHTTP(w, r)

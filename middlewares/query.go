@@ -1,7 +1,11 @@
 package middlewares
 
 // Package mw provides composable HTTP middleware primitives and semantic helpers.
-import "net/http"
+import (
+	"net/http"
+
+	fun "github.com/MintzyG/FastUtilitiesNet"
+)
 
 // QueryRequire rejects requests where any of the listed query params is absent or empty.
 func QueryRequire(params ...string) func(http.Handler) http.Handler {
@@ -10,7 +14,7 @@ func QueryRequire(params ...string) func(http.Handler) http.Handler {
 			q := r.URL.Query()
 			for _, p := range params {
 				if !q.Has(p) || q.Get(p) == "" {
-					http.Error(w, "missing required query param: "+p, http.StatusBadRequest)
+					fun.BadRequest("missing required query param: " + p).Send(w)
 					return
 				}
 			}
@@ -29,7 +33,7 @@ func QueryAllow(allowed ...string) func(http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			for param := range r.URL.Query() {
 				if _, ok := set[param]; !ok {
-					http.Error(w, "unknown query param: "+param, http.StatusBadRequest)
+					fun.BadRequest("unknown query param: " + param).Send(w)
 					return
 				}
 			}

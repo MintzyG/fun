@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"runtime/debug"
 
+	fun "github.com/MintzyG/FastUtilitiesNet"
 	"go.uber.org/zap"
 )
 
@@ -24,7 +25,7 @@ func Recover(logger *zap.Logger) func(http.Handler) http.Handler {
 						zap.String("stack", string(stack)),
 						zap.String("remote_addr", r.RemoteAddr),
 					)
-					http.Error(w, "internal server error", http.StatusInternalServerError)
+					fun.InternalServerError("internal server error").Send(w)
 				}
 			}()
 			next.ServeHTTP(w, r)

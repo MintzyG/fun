@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+
+	fun "github.com/MintzyG/FastUtilitiesNet"
 )
 
 // PaginationType selects the pagination shape used by NewWithPagination.
@@ -119,15 +121,15 @@ func validateIntParam(param string, min, max int) func(http.Handler) http.Handle
 			}
 			v, err := strconv.Atoi(raw)
 			if err != nil {
-				http.Error(w, fmt.Sprintf("query param %q must be an integer", param), http.StatusBadRequest)
+				fun.BadRequest(fmt.Sprintf("query param %q must be an integer", param)).Send(w)
 				return
 			}
 			if v < min {
-				http.Error(w, fmt.Sprintf("query param %q must be >= %d", param, min), http.StatusBadRequest)
+				fun.BadRequest(fmt.Sprintf("query param %q must be >= %d", param, min)).Send(w)
 				return
 			}
 			if max > 0 && v > max {
-				http.Error(w, fmt.Sprintf("query param %q must be <= %d", param, max), http.StatusBadRequest)
+				fun.BadRequest(fmt.Sprintf("query param %q must be <= %d", param, max)).Send(w)
 				return
 			}
 			next.ServeHTTP(w, r)

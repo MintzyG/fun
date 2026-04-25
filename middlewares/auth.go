@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/MintzyG/FastUtilitiesNet/response"
+	"github.com/MintzyG/FastUtilitiesNet"
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -23,13 +23,13 @@ type JWTHook[C jwt.Claims] func(ctx context.Context, claims C) (context.Context,
 // Returning a non-nil error rejects the request with 401.
 type APIKeyHook func(ctx context.Context, rawKey string) (context.Context, error)
 
-// KeyFunc returns the key used to verify a token, given its parsed (but unverified) form.
+// KeyFunc returns the key used to verify a token, given its parsed (but unverified) form while also taking a context.
 // Mirrors jwt.Keyfunc so callers can reuse existing implementations.
-type KeyFunc = jwt.Keyfunc
+type KeyFunc[C jwt.Claims] func(ctx context.Context, tokenStr string) (C, error)
 
 // Middleware holds all auth configuration. Build once with New, use everywhere.
 type Middleware[C jwt.Claims] struct {
-	keyFunc    KeyFunc
+	KeyFunc    KeyFunc[C]
 	jwtHook    JWTHook[C]
 	apiKeyHook APIKeyHook
 }
@@ -45,9 +45,9 @@ type Middleware[C jwt.Claims] struct {
 //	r.With(authMW.JWT()).Get("/me", meHandler)
 //	r.With(authMW.APIKey()).Post("/ingest", ingestHandler)
 //	r.With(authMW.AnyAuth()).Post("/events", eventHandler)
-func New[C jwt.Claims](keyFunc KeyFunc, jwtHook JWTHook[C], apiKeyHook APIKeyHook) *Middleware[C] {
+func New[C jwt.Claims](keyFunc KeyFunc[C], jwtHook JWTHook[C], apiKeyHook APIKeyHook) *Middleware[C] {
 	return &Middleware[C]{
-		keyFunc:    keyFunc,
+		KeyFunc:    keyFunc,
 		jwtHook:    jwtHook,
 		apiKeyHook: apiKeyHook,
 	}
@@ -69,8 +69,7 @@ func (m *Middleware[C]) JWT() func(http.Handler) http.Handler {
 				return
 			}
 
-			var claims C
-			_, err := jwt.ParseWithClaims(tokenStr, claims, m.keyFunc)
+			claims, err := m.KeyFunc(ctx, tokenStr)
 			if err != nil {
 				writeUnauthorized(w, "invalid token")
 				return
@@ -141,5 +140,5 @@ func extractBearer(r *http.Request) (string, bool) {
 }
 
 func writeUnauthorized(w http.ResponseWriter, msg string) {
-	response.Unauthorized(msg).Send(w)
+	fun.Unauthorized(msg).Send(w)
 }
