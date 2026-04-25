@@ -1,4 +1,4 @@
-package response
+package FUN
 
 import (
 	"log"
@@ -41,14 +41,13 @@ func ParsePaginationFromQuery(values url.Values) PaginationParams {
 		limit = maxLimit
 	}
 
-	return PaginationParams{
-		Page:  page,
-		Limit: limit,
-	}
+	return PaginationParams{Page: page, Limit: limit}
 }
 
+// CreatePaginationMeta computes pagination metadata from params and a total item count.
 func CreatePaginationMeta(params PaginationParams, total int64) PaginationMeta {
-	hasNext := params.Page < int(total)
+	totalPages := int((total + int64(params.Limit) - 1) / int64(params.Limit))
+	hasNext := params.Page < totalPages
 	hasPrev := params.Page > 1
 
 	meta := PaginationMeta{
@@ -60,13 +59,10 @@ func CreatePaginationMeta(params PaginationParams, total int64) PaginationMeta {
 	}
 
 	if hasNext {
-		nextPage := params.Page + 1
-		meta.NextPage = &nextPage
+		meta.NextPage = new(params.Page + 1)
 	}
-
 	if hasPrev {
-		prevPage := params.Page - 1
-		meta.PrevPage = &prevPage
+		meta.PrevPage = new(params.Page - 1)
 	}
 
 	return meta
@@ -77,7 +73,6 @@ func (r *Response) WithPagination(params PaginationParams, total int64) *Respons
 		log.Println("WARNING: WithPagination called on nil Response")
 		return nil
 	}
-	meta := CreatePaginationMeta(params, total)
-	r.PaginationData = &meta
+	r.PaginationData = new(CreatePaginationMeta(params, total))
 	return r
 }

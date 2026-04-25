@@ -1,4 +1,4 @@
-package response
+package FUN
 
 import (
 	"errors"
@@ -11,15 +11,15 @@ type ErrorCode string
 const (
 	ErrBadRequest   ErrorCode = "BAD_REQUEST"      // HTTP 400 | gRPC INVALID_ARGUMENT (3)
 	ErrValidation   ErrorCode = "VALIDATION_ERROR" // HTTP 400 | gRPC INVALID_ARGUMENT (3)
-	ErrUnauthorized ErrorCode = "UNAUTHORIZED"     // HTTP 401 | gRPC UNAUTHENTICATED 16
-	ErrForbidden    ErrorCode = "FORBIDDEN"        // HTTP 403 | gRPC PERMISSION_DENIED 7
-	ErrNotFound     ErrorCode = "NOT_FOUND"        // HTTP 404 | gRPC NOT_FOUND 5
-	ErrConflict     ErrorCode = "CONFLICT"         // HTTP 409 | gRPC ALREADY_EXISTS 6
-	ErrInternal     ErrorCode = "INTERNAL_ERROR"   // HTTP 500 | gRPC INTERNAL 13
+	ErrUnauthorized ErrorCode = "UNAUTHORIZED"     // HTTP 401 | gRPC UNAUTHENTICATED (16)
+	ErrForbidden    ErrorCode = "FORBIDDEN"        // HTTP 403 | gRPC PERMISSION_DENIED (7)
+	ErrNotFound     ErrorCode = "NOT_FOUND"        // HTTP 404 | gRPC NOT_FOUND (5)
+	ErrConflict     ErrorCode = "CONFLICT"         // HTTP 409 | gRPC ALREADY_EXISTS (6)
+	ErrInternal     ErrorCode = "INTERNAL_ERROR"   // HTTP 500 | gRPC INTERNAL (13)
 )
 
-// appErrorStatusMap maps sentinel codes to HTTP status codes.
 var appErrorStatusMap = map[ErrorCode]int{
+	ErrBadRequest:   400,
 	ErrValidation:   400,
 	ErrUnauthorized: 401,
 	ErrForbidden:    403,
@@ -28,22 +28,8 @@ var appErrorStatusMap = map[ErrorCode]int{
 	ErrInternal:     500,
 }
 
-// FieldError represents a single field-level validation failure.
-type FieldError struct {
-	Field   string `json:"field"`
-	Message string `json:"message"`
-	Value   any    `json:"value,omitempty"`
-}
-
-func (e FieldError) Error() string {
-	if e.Value != nil {
-		return fmt.Sprintf("(%s) %s: %v", e.Field, e.Message, e.Value)
-	}
-	return fmt.Sprintf("(%s) %s", e.Field, e.Message)
-}
-
 // DebugInfo holds development-only diagnostic information.
-// It is stripped from responses when Config.IsDevelopment is false.
+// Stripped from responses when Config.IsDevelopment is false.
 type DebugInfo struct {
 	RawError   string `json:"raw_error,omitempty"`
 	StackTrace string `json:"stack_trace,omitempty"`
@@ -72,10 +58,6 @@ type AppError struct {
 
 	// Err is the underlying cause; used by errors.Is / errors.As chains.
 	Err error `json:"-"`
-
-	// Status is the HTTP status code. Derived automatically from Code via
-	// appErrorStatusMap; falls back to 500 for unknown codes.
-	Status int `json:"-"`
 }
 
 func (e *AppError) Error() string {
@@ -86,7 +68,6 @@ func (e *AppError) Unwrap() error {
 	return e.Err
 }
 
-// httpStatus returns the HTTP status for this error, defaulting to 500.
 func (e *AppError) httpStatus() int {
 	if s, ok := appErrorStatusMap[e.Code]; ok {
 		return s
@@ -94,15 +75,13 @@ func (e *AppError) httpStatus() int {
 	return 500
 }
 
-// toResponse converts the AppError into a *Response ready to be sent.
 func (e *AppError) toResponse() *Response {
 	r := newBaseResponse(e.httpStatus(), e.Message)
 	r.AppError = e
 	return r
 }
 
-// AppErrorBuilder is an intermediate type that holds the message
-// before the error code is chosen.
+// AppErrorBuilder is an intermediate type returned by NewError / NewErrorf.
 type AppErrorBuilder struct {
 	message string
 	fields  []FieldError
@@ -120,14 +99,8 @@ func NewErrorf(format string, args ...any) *AppErrorBuilder {
 	return &AppErrorBuilder{message: fmt.Sprintf(format, args...)}
 }
 
-func (b *AppErrorBuilder) WithErrors(errs ...error) *AppErrorBuilder {
-	for _, err := range errs {
-		b.WithFields(err)
-	}
-	return b
-}
-
 // WithFields attaches field-level validation errors.
+// Accepts FieldError, *FieldError, or any error that wraps a *FieldError.
 func (b *AppErrorBuilder) WithFields(fields ...any) *AppErrorBuilder {
 	for _, f := range fields {
 		switch v := f.(type) {
@@ -138,8 +111,7 @@ func (b *AppErrorBuilder) WithFields(fields ...any) *AppErrorBuilder {
 				b.fields = append(b.fields, *v)
 			}
 		case error:
-			var fe *FieldError
-			if errors.As(v, &fe) {
+			if fe, ok := errors.AsType[*FieldError](v); ok {
 				b.fields = append(b.fields, *fe)
 			}
 		}
@@ -173,37 +145,24 @@ func (b *AppErrorBuilder) build(code ErrorCode) *AppError {
 }
 
 // BadRequest HTTP 400 | gRPC INVALID_ARGUMENT (3)
-// Use for malformed requests. Use Validation() instead when you have field-level detail.
-func (b *AppErrorBuilder) BadRequest() *AppError {
-	return b.build(ErrBadRequest)
-}
+// Use for malformed requests without field-level detail.
+func (b *AppErrorBuilder) BadRequest() *AppError { return b.build(ErrBadRequest) }
 
 // Validation HTTP 400 | gRPC INVALID_ARGUMENT (3)
-func (b *AppErrorBuilder) Validation() *AppError {
-	return b.build(ErrValidation)
-}
+// Use when you have field-level detail via WithFields.
+func (b *AppErrorBuilder) Validation() *AppError { return b.build(ErrValidation) }
 
 // Unauthorized HTTP 401 | gRPC UNAUTHENTICATED (16)
-func (b *AppErrorBuilder) Unauthorized() *AppError {
-	return b.build(ErrUnauthorized)
-}
+func (b *AppErrorBuilder) Unauthorized() *AppError { return b.build(ErrUnauthorized) }
 
 // Forbidden HTTP 403 | gRPC PERMISSION_DENIED (7)
-func (b *AppErrorBuilder) Forbidden() *AppError {
-	return b.build(ErrForbidden)
-}
+func (b *AppErrorBuilder) Forbidden() *AppError { return b.build(ErrForbidden) }
 
 // NotFound HTTP 404 | gRPC NOT_FOUND (5)
-func (b *AppErrorBuilder) NotFound() *AppError {
-	return b.build(ErrNotFound)
-}
+func (b *AppErrorBuilder) NotFound() *AppError { return b.build(ErrNotFound) }
 
 // Conflict HTTP 409 | gRPC ALREADY_EXISTS (6)
-func (b *AppErrorBuilder) Conflict() *AppError {
-	return b.build(ErrConflict)
-}
+func (b *AppErrorBuilder) Conflict() *AppError { return b.build(ErrConflict) }
 
 // Internal HTTP 500 | gRPC INTERNAL (13)
-func (b *AppErrorBuilder) Internal() *AppError {
-	return b.build(ErrInternal)
-}
+func (b *AppErrorBuilder) Internal() *AppError { return b.build(ErrInternal) }

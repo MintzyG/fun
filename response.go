@@ -1,4 +1,4 @@
-package response
+package FUN
 
 import (
 	"context"
@@ -21,16 +21,23 @@ type Response struct {
 	ContentType    string          `json:"-"`
 	TracePrefix    string          `json:"-"`
 	config         Config          `json:"-"`
+	hasConfig      bool            `json:"-"`
 }
 
-// WithConfig sets a custom configuration for this specific response instance
-// This overrides the global configuration for this response only
+func (r *Response) getResponseConfig() Config {
+	if r.hasConfig {
+		return r.config
+	}
+	return getConfig()
+}
+
+// WithConfig sets a custom configuration for this response instance,
+// overriding the global configuration.
 func (r *Response) WithConfig(config Config) *Response {
 	if r == nil {
 		log.Println("WARNING: WithConfig called on nil Response")
 		return nil
 	}
-	// Validate and set defaults for invalid config values
 	if config.MaxTraceSize <= 0 {
 		config.MaxTraceSize = defaultConfig.MaxTraceSize
 	}
@@ -43,14 +50,11 @@ func (r *Response) WithConfig(config Config) *Response {
 	if config.DefaultContentType == "" {
 		config.DefaultContentType = defaultConfig.DefaultContentType
 	}
-
 	r.config = config
-
-	// Update ContentType if it wasn't explicitly set
-	if r.ContentType == "" || r.ContentType == getConfig().DefaultContentType {
+	r.hasConfig = true
+	if r.ContentType == "" {
 		r.ContentType = config.DefaultContentType
 	}
-
 	return r
 }
 
@@ -108,20 +112,20 @@ func (r *Response) WithErrID(id string) *Response {
 	return r
 }
 
-// Does nothing unless using a custom response
 func (r *Response) WithCode(code int) *Response {
 	if r == nil {
 		log.Println("WARNING: WithCode called on nil Response")
 		return nil
 	}
 	if err := validateStatusCode(code); err != nil {
-		log.Printf("WARNING: Invalid status code %d set. Response will not be sent.", code)
+		log.Printf("WARNING: WithCode called with invalid status code %d: %v", code, err)
+		return r
 	}
 	r.Code = code
 	return r
 }
 
-// For when you don't have context (simple cases, tests, etc.)
+// Send writes the response to w. Use SendWithContext when a request context is available.
 func (r *Response) Send(w http.ResponseWriter) {
 	if r == nil {
 		log.Println("WARNING: Send called on nil Response")
@@ -131,10 +135,10 @@ func (r *Response) Send(w http.ResponseWriter) {
 		log.Println("WARNING: Send called with nil ResponseWriter")
 		return
 	}
-	r.SendWithContext(context.Background(), w)
+	r.sendInternal(context.Background(), w)
 }
 
-// For when you have context (web servers, etc.)
+// SendWithContext writes the response to w, passing ctx to interceptors.
 func (r *Response) SendWithContext(ctx context.Context, w http.ResponseWriter) {
 	if r == nil {
 		log.Println("WARNING: SendWithContext called on nil Response")
@@ -144,50 +148,37 @@ func (r *Response) SendWithContext(ctx context.Context, w http.ResponseWriter) {
 		log.Println("WARNING: SendWithContext called with nil ResponseWriter")
 		return
 	}
-
-	if err := r.validateResponseSize(); err != nil {
-		log.Printf("WARNING: Attempted to send response with invalid status code %d: %v. Response will be sent. as 500", r.Code, err)
-		r.Code = 500
-	}
-
 	r.sendInternal(ctx, w)
 }
 
-// Internal send method to avoid code duplication
 func (r *Response) sendInternal(ctx context.Context, w http.ResponseWriter) {
-	if r == nil {
-		log.Println("WARNING: sendInternal called on nil Response")
-		return
-	}
-	if w == nil {
-		log.Println("WARNING: sendInternal called with nil ResponseWriter")
-		return
-	}
-
 	if err := validateStatusCode(r.Code); err != nil {
-		log.Printf("WARNING: Attempted to send response with invalid status code %d: %v. Response will be sent. as 500", r.Code, err)
+		log.Printf("WARNING: invalid status code %d: %v. Defaulting to 500.", r.Code, err)
 		r.Code = 500
 	}
 
+	if err := r.validateResponseSize(); err != nil {
+		log.Printf("WARNING: response size validation failed: %v. Sending anyway.", err)
+	}
+
 	// Strip AppError.Debug in non-development environments.
-	if r.AppError != nil && r.AppError.Debug != nil {
-		if !r.getResponseConfig().IsDevelopment {
-			r.AppError.Debug = nil
-		}
+	if r.AppError != nil && r.AppError.Debug != nil && !r.getResponseConfig().IsDevelopment {
+		r.AppError.Debug = nil
 	}
 
 	interceptorsMu.RLock()
-	currentInterceptors := make([]ResponseInterceptor, len(interceptors))
-	copy(currentInterceptors, interceptors)
+	current := make([]ResponseInterceptor, len(interceptors))
+	copy(current, interceptors)
 	interceptorsMu.RUnlock()
 
-	for _, interceptor := range currentInterceptors {
-		if interceptor != nil {
-			if ctx != nil && ctx != context.Background() {
-				interceptor.Intercept(ctx, r, r.Code)
-			} else {
-				interceptor.InterceptSimple(r, r.Code)
-			}
+	for _, interceptor := range current {
+		if interceptor == nil {
+			continue
+		}
+		if ctx != context.Background() {
+			interceptor.Intercept(ctx, r, r.Code)
+		} else {
+			interceptor.InterceptSimple(r, r.Code)
 		}
 	}
 
@@ -196,9 +187,7 @@ func (r *Response) sendInternal(ctx context.Context, w http.ResponseWriter) {
 
 	encoder := json.NewEncoder(w)
 	encoder.SetEscapeHTML(false)
-
 	if err := encoder.Encode(r); err != nil {
-		// If encoding fails, we can't send the original response so we leave it to Interceptors
-		r.appendTraceInternal("internal error", (&EncodingError{Inner: err}).Error())
+		log.Printf("WARNING: failed to encode response: %v", err)
 	}
 }

@@ -1,4 +1,4 @@
-package response
+package FUN
 
 import (
 	"errors"
@@ -8,8 +8,6 @@ import (
 
 // AppErrorMapper converts any Go error into an *AppError.
 // Register one at application startup via RegisterAppErrorMapper.
-// If no mapper is registered, Error() / ErrorCtx() will wrap unknown
-// errors as ErrInternal and log a warning.
 type AppErrorMapper func(err error) *AppError
 
 var (
@@ -17,9 +15,8 @@ var (
 	appErrorMapperMu sync.RWMutex
 )
 
-// RegisterAppErrorMapper sets the global mapper used by Error and ErrorCtx
-// to convert arbitrary errors into *AppError values.
-// Call this once during application initialization.
+// RegisterAppErrorMapper sets the global mapper used by Error to convert
+// arbitrary errors into *AppError values. Call once during initialization.
 func RegisterAppErrorMapper(m AppErrorMapper) {
 	appErrorMapperMu.Lock()
 	defer appErrorMapperMu.Unlock()
@@ -40,13 +37,22 @@ func ResetAppErrorMapper() {
 	appErrorMapper = nil
 }
 
-// resolveAppError is the central conversion logic shared by Error and ErrorCtx.
+// Error resolves err into a *Response ready to be sent.
+//
+//	user, err := svc.GetUser(ctx, id)
+//	if err != nil {
+//	    response.Error(err).Send(w)
+//	    return
+//	}
 //
 // Resolution order:
 //  1. err is already an *AppError — use it directly.
 //  2. A mapper is registered — delegate to it.
-//  3. No mapper — log a warning and wrap as ErrInternal with the raw message
-//     visible in the response (unexpected situation, likely a dev environment).
+//  3. No mapper — log a warning and wrap as ErrInternal.
+func Error(err error) *Response {
+	return resolveAppError(err).toResponse()
+}
+
 func resolveAppError(err error) *AppError {
 	if err == nil {
 		return &AppError{
@@ -56,8 +62,7 @@ func resolveAppError(err error) *AppError {
 	}
 
 	// 1. Already an AppError.
-	var ae *AppError
-	if errors.As(err, &ae) {
+	if ae, ok := errors.AsType[*AppError](err); ok {
 		return ae
 	}
 
@@ -67,8 +72,7 @@ func resolveAppError(err error) *AppError {
 	appErrorMapperMu.RUnlock()
 
 	if mapper != nil {
-		mapped := mapper(err)
-		if mapped != nil {
+		if mapped := mapper(err); mapped != nil {
 			return mapped
 		}
 	}
