@@ -41,8 +41,8 @@ func (b *BodyReader) Into(dst any) error {
 	return nil
 }
 
-// IntoStrict decodes the JSON body into dst, returning an error on unknown fields.
-func (b *BodyReader) IntoStrict(dst any) error {
+// IntoExact decodes the JSON body into dst, returning an error on unknown fields.
+func (b *BodyReader) IntoExact(dst any) error {
 	dec := json.NewDecoder(b.reader())
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(dst); err != nil {

@@ -3,7 +3,7 @@ package handlers
 import (
 	"net/http"
 
-	"github.com/MintzyG/FastUtilitiesNet/response"
+	"github.com/MintzyG/FastUtilitiesNet"
 )
 
 // VersionHandler returns user-supplied build info as JSON.
@@ -25,7 +25,7 @@ func Version(info map[string]any) *VersionHandler {
 }
 
 func (h *VersionHandler) Handle(w http.ResponseWriter, _ *http.Request) {
-	response.OK().
+	fun.OK().
 		WithContentType("application/json").
 		WithData(h.info).
 		Send(w)

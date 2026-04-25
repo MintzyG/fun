@@ -70,7 +70,7 @@ func CreatePaginationMeta(params PaginationParams, total int64) PaginationMeta {
 
 func (r *Response) WithPagination(params PaginationParams, total int64) *Response {
 	if r == nil {
-		log.Println("WARNING: WithPagination called on nil Response")
+		log.Println("[fun] WARNING: WithPagination called on nil Response")
 		return nil
 	}
 	r.PaginationData = new(CreatePaginationMeta(params, total))

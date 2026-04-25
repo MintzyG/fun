@@ -73,15 +73,15 @@ func (b *Binder) Limit(maxBytes int64) *Binder {
 //
 //	// strict mode — unknown fields are rejected
 //	if err := bind.Body(req).Bind(&input, true); err != nil { ... }
-func (b *Binder) Bind(dst any, strict ...bool) *fun.AppError {
+func (b *Binder) Bind(dst any, exact ...bool) *fun.AppError {
 	var decodeErr error
-	if len(strict) > 0 && strict[0] {
-		decodeErr = b.body.IntoStrict(dst)
+	if len(exact) > 0 && exact[0] {
+		decodeErr = b.body.IntoExact(dst)
 	} else {
 		decodeErr = b.body.Into(dst)
 	}
 	if decodeErr != nil {
-		return fun.NewError(decodeErr.Error()).BadRequest()
+		return fun.ErrBadRequest(decodeErr.Error())
 	}
 
 	validatorMu.RLock()
@@ -94,7 +94,7 @@ func (b *Binder) Bind(dst any, strict ...bool) *fun.AppError {
 
 	if err := v.Struct(dst); err != nil {
 		fields := validationErrsToFields(err)
-		return fun.NewError("invalid body").WithFields(fields...).Validation()
+		return fun.Err("invalid body").WithFields(fields...).Validation()
 	}
 
 	return nil

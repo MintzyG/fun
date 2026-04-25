@@ -36,7 +36,7 @@ func SetPathParamFunc(fn PathParamFunc) {
 	globalPathParamFunc = fn
 }
 
-// From wraps an *http.Request. Panics on nil — it's always a bug.
+// From wraps an *http.Request. Panics on nil - it's always a bug.
 func From(r *http.Request) *Request {
 	if r == nil {
 		panic("fun.From: nil *http.Request")

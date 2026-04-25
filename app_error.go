@@ -3,33 +3,47 @@ package fun
 import (
 	"errors"
 	"fmt"
+	"net/http"
 )
 
 type ErrorCode string
 
 // Sentinel error codes and their HTTP status mappings.
 const (
-	ErrBadRequest   ErrorCode = "BAD_REQUEST"      // HTTP 400 | gRPC INVALID_ARGUMENT (3)
-	ErrValidation   ErrorCode = "VALIDATION_ERROR" // HTTP 400 | gRPC INVALID_ARGUMENT (3)
-	ErrUnauthorized ErrorCode = "UNAUTHORIZED"     // HTTP 401 | gRPC UNAUTHENTICATED (16)
-	ErrForbidden    ErrorCode = "FORBIDDEN"        // HTTP 403 | gRPC PERMISSION_DENIED (7)
-	ErrNotFound     ErrorCode = "NOT_FOUND"        // HTTP 404 | gRPC NOT_FOUND (5)
-	ErrConflict     ErrorCode = "CONFLICT"         // HTTP 409 | gRPC ALREADY_EXISTS (6)
-	ErrInternal     ErrorCode = "INTERNAL_ERROR"   // HTTP 500 | gRPC INTERNAL (13)
+	CodeBadRequest          ErrorCode = "BAD_REQUEST"
+	CodeValidation          ErrorCode = "VALIDATION_ERROR"
+	CodeUnauthorized        ErrorCode = "UNAUTHORIZED"
+	CodePaymentRequired     ErrorCode = "PAYMENT_REQUIRED"
+	CodeForbidden           ErrorCode = "FORBIDDEN"
+	CodeNotFound            ErrorCode = "NOT_FOUND"
+	CodeMethodNotAllowed    ErrorCode = "METHOD_NOT_ALLOWED"
+	CodeConflict            ErrorCode = "CONFLICT"
+	CodeUnprocessableEntity ErrorCode = "UNPROCESSABLE_ENTITY"
+	CodeTooManyRequests     ErrorCode = "TOO_MANY_REQUESTS"
+	CodeInternal            ErrorCode = "INTERNAL_ERROR"
+	CodeNotImplemented      ErrorCode = "NOT_IMPLEMENTED"
+	CodeBadGateway          ErrorCode = "BAD_GATEWAY"
+	CodeServiceUnavailable  ErrorCode = "SERVICE_UNAVAILABLE"
 )
 
 var appErrorStatusMap = map[ErrorCode]int{
-	ErrBadRequest:   400,
-	ErrValidation:   400,
-	ErrUnauthorized: 401,
-	ErrForbidden:    403,
-	ErrNotFound:     404,
-	ErrConflict:     409,
-	ErrInternal:     500,
+	CodeBadRequest:          http.StatusBadRequest,
+	CodeValidation:          http.StatusBadRequest,
+	CodeUnauthorized:        http.StatusUnauthorized,
+	CodePaymentRequired:     http.StatusPaymentRequired,
+	CodeForbidden:           http.StatusForbidden,
+	CodeNotFound:            http.StatusNotFound,
+	CodeMethodNotAllowed:    http.StatusMethodNotAllowed,
+	CodeConflict:            http.StatusConflict,
+	CodeUnprocessableEntity: http.StatusUnprocessableEntity,
+	CodeTooManyRequests:     http.StatusTooManyRequests,
+	CodeInternal:            http.StatusInternalServerError,
+	CodeNotImplemented:      http.StatusNotImplemented,
+	CodeBadGateway:          http.StatusBadGateway,
+	CodeServiceUnavailable:  http.StatusServiceUnavailable,
 }
 
 // DebugInfo holds development-only diagnostic information.
-// Stripped from responses when Config.IsDevelopment is false.
 type DebugInfo struct {
 	RawError   string `json:"raw_error,omitempty"`
 	StackTrace string `json:"stack_trace,omitempty"`
@@ -37,51 +51,35 @@ type DebugInfo struct {
 
 // AppError is a structured application error that carries semantic meaning
 // and maps directly onto an HTTP response shape.
-//
-// It implements the error interface so it can flow through normal Go error
-// handling and be detected with errors.As.
 type AppError struct {
-	// Code is a machine-readable sentinel (e.g. ErrNotFound).
-	Code ErrorCode `json:"code"`
-
-	// Message is the human-readable description sent to the client.
-	Message string `json:"message"`
-
-	// Fields holds field-level detail, typically for validation errors.
-	Fields []FieldError `json:"fields,omitempty"`
-
-	// Meta holds arbitrary key/value context (request IDs, resource names, …).
-	Meta map[string]any `json:"meta,omitempty"`
-
-	// Debug is only included in responses when Config.IsDevelopment is true.
-	Debug *DebugInfo `json:"debug,omitempty"`
-
-	// Err is the underlying cause; used by errors.Is / errors.As chains.
-	Err error `json:"-"`
+	Code    ErrorCode      `json:"code"`             // Code is a machine-readable sentinel (e.g. ErrNotFound).
+	Message string         `json:"message"`          // Message is the human-readable description sent to the client.
+	Fields  []FieldError   `json:"fields,omitempty"` // Fields holds field-level detail, typically for validation errors.
+	Meta    map[string]any `json:"meta,omitempty"`   // Meta holds arbitrary key/value context (request IDs, resource names, …).
+	Debug   *DebugInfo     `json:"debug,omitempty"`  // Debug is only included in responses when Config.IsDevelopment is true.
+	Err     error          `json:"-"`                // Err is the underlying cause; used by errors.Is / errors.As chains.
 }
 
-func (e *AppError) Error() string {
-	return fmt.Sprintf("%s: %s", e.Code, e.Message)
-}
-
-func (e *AppError) Unwrap() error {
-	return e.Err
-}
+func (e *AppError) Error() string { return fmt.Sprintf("%s: %s", e.Code, e.Message) }
+func (e *AppError) Unwrap() error { return e.Err }
 
 func (e *AppError) httpStatus() int {
 	if s, ok := appErrorStatusMap[e.Code]; ok {
 		return s
 	}
-	return 500
+	return http.StatusInternalServerError
 }
 
 func (e *AppError) toResponse() *Response {
-	r := newBaseResponse(e.httpStatus(), e.Message)
+	r := base(e.httpStatus(), e.Message)
 	r.AppError = e
 	return r
 }
 
-// AppErrorBuilder is an intermediate type returned by NewError / NewErrorf.
+// ---------------------------------------------------------------------------
+// Builder
+// ---------------------------------------------------------------------------
+
 type AppErrorBuilder struct {
 	message string
 	fields  []FieldError
@@ -89,13 +87,13 @@ type AppErrorBuilder struct {
 	err     error
 }
 
-// NewError starts building an AppError with a plain message.
-func NewError(message string) *AppErrorBuilder {
+// Err starts building an AppError with a plain message.
+func Err(message string) *AppErrorBuilder {
 	return &AppErrorBuilder{message: message}
 }
 
-// NewErrorf starts building an AppError with a formatted message.
-func NewErrorf(format string, args ...any) *AppErrorBuilder {
+// Errf starts building an AppError with a formatted message.
+func Errf(format string, args ...any) *AppErrorBuilder {
 	return &AppErrorBuilder{message: fmt.Sprintf(format, args...)}
 }
 
@@ -144,25 +142,38 @@ func (b *AppErrorBuilder) build(code ErrorCode) *AppError {
 	}
 }
 
-// BadRequest HTTP 400 | gRPC INVALID_ARGUMENT (3)
-// Use for malformed requests without field-level detail.
-func (b *AppErrorBuilder) BadRequest() *AppError { return b.build(ErrBadRequest) }
+// Builder terminal methods
 
-// Validation HTTP 400 | gRPC INVALID_ARGUMENT (3)
-// Use when you have field-level detail via WithFields.
-func (b *AppErrorBuilder) Validation() *AppError { return b.build(ErrValidation) }
+func (b *AppErrorBuilder) BadRequest() *AppError          { return b.build(CodeBadRequest) }
+func (b *AppErrorBuilder) Validation() *AppError          { return b.build(CodeValidation) }
+func (b *AppErrorBuilder) Unauthorized() *AppError        { return b.build(CodeUnauthorized) }
+func (b *AppErrorBuilder) PaymentRequired() *AppError     { return b.build(CodePaymentRequired) }
+func (b *AppErrorBuilder) Forbidden() *AppError           { return b.build(CodeForbidden) }
+func (b *AppErrorBuilder) NotFound() *AppError            { return b.build(CodeNotFound) }
+func (b *AppErrorBuilder) MethodNotAllowed() *AppError    { return b.build(CodeMethodNotAllowed) }
+func (b *AppErrorBuilder) Conflict() *AppError            { return b.build(CodeConflict) }
+func (b *AppErrorBuilder) UnprocessableEntity() *AppError { return b.build(CodeUnprocessableEntity) }
+func (b *AppErrorBuilder) TooManyRequests() *AppError     { return b.build(CodeTooManyRequests) }
+func (b *AppErrorBuilder) Internal() *AppError            { return b.build(CodeInternal) }
+func (b *AppErrorBuilder) NotImplemented() *AppError      { return b.build(CodeNotImplemented) }
+func (b *AppErrorBuilder) BadGateway() *AppError          { return b.build(CodeBadGateway) }
+func (b *AppErrorBuilder) ServiceUnavailable() *AppError  { return b.build(CodeServiceUnavailable) }
 
-// Unauthorized HTTP 401 | gRPC UNAUTHENTICATED (16)
-func (b *AppErrorBuilder) Unauthorized() *AppError { return b.build(ErrUnauthorized) }
+// ---------------------------------------------------------------------------
+// Shorthand helpers — skip the builder when you just have a message
+// ---------------------------------------------------------------------------
 
-// Forbidden HTTP 403 | gRPC PERMISSION_DENIED (7)
-func (b *AppErrorBuilder) Forbidden() *AppError { return b.build(ErrForbidden) }
-
-// NotFound HTTP 404 | gRPC NOT_FOUND (5)
-func (b *AppErrorBuilder) NotFound() *AppError { return b.build(ErrNotFound) }
-
-// Conflict HTTP 409 | gRPC ALREADY_EXISTS (6)
-func (b *AppErrorBuilder) Conflict() *AppError { return b.build(ErrConflict) }
-
-// Internal HTTP 500 | gRPC INTERNAL (13)
-func (b *AppErrorBuilder) Internal() *AppError { return b.build(ErrInternal) }
+func ErrBadRequest(msg string) *AppError          { return Err(msg).BadRequest() }
+func ErrValidation(msg string) *AppError          { return Err(msg).Validation() }
+func ErrUnauthorized(msg string) *AppError        { return Err(msg).Unauthorized() }
+func ErrPaymentRequired(msg string) *AppError     { return Err(msg).PaymentRequired() }
+func ErrForbidden(msg string) *AppError           { return Err(msg).Forbidden() }
+func ErrNotFound(msg string) *AppError            { return Err(msg).NotFound() }
+func ErrMethodNotAllowed(msg string) *AppError    { return Err(msg).MethodNotAllowed() }
+func ErrConflict(msg string) *AppError            { return Err(msg).Conflict() }
+func ErrUnprocessableEntity(msg string) *AppError { return Err(msg).UnprocessableEntity() }
+func ErrTooManyRequests(msg string) *AppError     { return Err(msg).TooManyRequests() }
+func ErrInternal(msg string) *AppError            { return Err(msg).Internal() }
+func ErrNotImplemented(msg string) *AppError      { return Err(msg).NotImplemented() }
+func ErrBadGateway(msg string) *AppError          { return Err(msg).BadGateway() }
+func ErrServiceUnavailable(msg string) *AppError  { return Err(msg).ServiceUnavailable() }

@@ -3,7 +3,7 @@ package handlers
 import (
 	"net/http"
 
-	"github.com/MintzyG/FastUtilitiesNet/response"
+	"github.com/MintzyG/FastUtilitiesNet"
 )
 
 // HealthHandler is a liveness handler.
@@ -30,7 +30,7 @@ func (h *HealthHandler) Handle(w http.ResponseWriter, _ *http.Request) {
 		Service: h.service,
 	}
 
-	response.OK().WithData(payload).
+	fun.OK().WithData(payload).
 		WithContentType("application/json").
 		Send(w)
 }

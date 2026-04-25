@@ -6,10 +6,10 @@ import (
 )
 
 type ResponseInterceptor interface {
-	// Called when context is available
+	// Intercept should be called when context is available
 	Intercept(ctx context.Context, response *Response, statusCode int)
 
-	// Called when no context is available
+	// InterceptSimple should be called when no context is available
 	InterceptSimple(response *Response, statusCode int)
 }
 
@@ -19,7 +19,8 @@ var (
 	interceptorsMu sync.RWMutex
 )
 
-// Interceptor should only be added during downtimes or application initializtion
+// AddInterceptor godoc
+// Interceptors should only be added during downtimes or application initialization
 func AddInterceptor(interceptor ResponseInterceptor) error {
 	interceptorsMu.Lock()
 	defer interceptorsMu.Unlock()

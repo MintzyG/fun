@@ -35,7 +35,7 @@ func (r *Response) getResponseConfig() Config {
 // overriding the global configuration.
 func (r *Response) WithConfig(config Config) *Response {
 	if r == nil {
-		log.Println("WARNING: WithConfig called on nil Response")
+		log.Println("[fun] WARNING: WithConfig called on nil Response")
 		return nil
 	}
 	if config.MaxTraceSize <= 0 {
@@ -60,7 +60,7 @@ func (r *Response) WithConfig(config Config) *Response {
 
 func (r *Response) WithContentType(ctype string) *Response {
 	if r == nil {
-		log.Println("WARNING: WithContentType called on nil Response")
+		log.Println("[fun] WARNING: WithContentType called on nil Response")
 		return nil
 	}
 	r.ContentType = ctype
@@ -69,7 +69,7 @@ func (r *Response) WithContentType(ctype string) *Response {
 
 func (r *Response) WithModule(module string) *Response {
 	if r == nil {
-		log.Println("WARNING: WithModule called on nil Response")
+		log.Println("[fun] WARNING: WithModule called on nil Response")
 		return nil
 	}
 	r.Module = module
@@ -78,7 +78,7 @@ func (r *Response) WithModule(module string) *Response {
 
 func (r *Response) WithMsg(message string) *Response {
 	if r == nil {
-		log.Println("WARNING: WithMsg called on nil Response")
+		log.Println("[fun] WARNING: WithMsg called on nil Response")
 		return nil
 	}
 	r.Message = message
@@ -87,7 +87,7 @@ func (r *Response) WithMsg(message string) *Response {
 
 func (r *Response) WithData(data any) *Response {
 	if r == nil {
-		log.Println("WARNING: WithData called on nil Response")
+		log.Println("[fun] WARNING: WithData called on nil Response")
 		return nil
 	}
 	r.Data = data
@@ -96,7 +96,7 @@ func (r *Response) WithData(data any) *Response {
 
 func (r *Response) WithTracePrefix(prefix string) *Response {
 	if r == nil {
-		log.Println("WARNING: WithTracePrefix called on nil Response")
+		log.Println("[fun] WARNING: WithTracePrefix called on nil Response")
 		return nil
 	}
 	r.TracePrefix = prefix
@@ -105,7 +105,7 @@ func (r *Response) WithTracePrefix(prefix string) *Response {
 
 func (r *Response) WithErrID(id string) *Response {
 	if r == nil {
-		log.Println("WARNING: WithErrID called on nil Response")
+		log.Println("[fun] WARNING: WithErrID called on nil Response")
 		return nil
 	}
 	r.ErrorID = id
@@ -114,38 +114,38 @@ func (r *Response) WithErrID(id string) *Response {
 
 func (r *Response) WithCode(code int) *Response {
 	if r == nil {
-		log.Println("WARNING: WithCode called on nil Response")
+		log.Println("[fun] WARNING: WithCode called on nil Response")
 		return nil
 	}
 	if err := validateStatusCode(code); err != nil {
-		log.Printf("WARNING: WithCode called with invalid status code %d: %v", code, err)
+		log.Printf("[fun] WARNING: WithCode called with invalid status code %d: %v", code, err)
 		return r
 	}
 	r.Code = code
 	return r
 }
 
-// Send writes the response to w. Use SendWithContext when a request context is available.
+// Send writes the response to w. Use SendWithCtx when a request context is available.
 func (r *Response) Send(w http.ResponseWriter) {
 	if r == nil {
-		log.Println("WARNING: Send called on nil Response")
+		log.Println("[fun] WARNING: Send called on nil Response")
 		return
 	}
 	if w == nil {
-		log.Println("WARNING: Send called with nil ResponseWriter")
+		log.Println("[fun] WARNING: Send called with nil ResponseWriter")
 		return
 	}
 	r.sendInternal(context.Background(), w)
 }
 
-// SendWithContext writes the response to w, passing ctx to interceptors.
-func (r *Response) SendWithContext(ctx context.Context, w http.ResponseWriter) {
+// SendWithCtx writes the response to w, passing ctx to interceptors.
+func (r *Response) SendWithCtx(ctx context.Context, w http.ResponseWriter) {
 	if r == nil {
-		log.Println("WARNING: SendWithContext called on nil Response")
+		log.Println("[fun] WARNING: SendWithContext called on nil Response")
 		return
 	}
 	if w == nil {
-		log.Println("WARNING: SendWithContext called with nil ResponseWriter")
+		log.Println("[fun] WARNING: SendWithContext called with nil ResponseWriter")
 		return
 	}
 	r.sendInternal(ctx, w)
@@ -153,12 +153,12 @@ func (r *Response) SendWithContext(ctx context.Context, w http.ResponseWriter) {
 
 func (r *Response) sendInternal(ctx context.Context, w http.ResponseWriter) {
 	if err := validateStatusCode(r.Code); err != nil {
-		log.Printf("WARNING: invalid status code %d: %v. Defaulting to 500.", r.Code, err)
+		log.Printf("[fun] WARNING: invalid status code %d: %v. Defaulting to 500.", r.Code, err)
 		r.Code = 500
 	}
 
 	if err := r.validateResponseSize(); err != nil {
-		log.Printf("WARNING: response size validation failed: %v. Sending anyway.", err)
+		log.Printf("[fun] WARNING: response size validation failed: %v. Sending anyway.", err)
 	}
 
 	// Strip AppError.Debug in non-development environments.
@@ -188,6 +188,6 @@ func (r *Response) sendInternal(ctx context.Context, w http.ResponseWriter) {
 	encoder := json.NewEncoder(w)
 	encoder.SetEscapeHTML(false)
 	if err := encoder.Encode(r); err != nil {
-		log.Printf("WARNING: failed to encode response: %v", err)
+		log.Printf("[fun] WARNING: failed to encode response: %v", err)
 	}
 }

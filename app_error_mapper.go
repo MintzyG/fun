@@ -58,7 +58,7 @@ func Error(err error) *Response {
 func resolveAppError(err error) *AppError {
 	if err == nil {
 		return &AppError{
-			Code:    ErrInternal,
+			Code:    CodeInternal,
 			Message: "an unknown error occurred",
 		}
 	}
@@ -70,19 +70,19 @@ func resolveAppError(err error) *AppError {
 
 	// 2. Param errors — map to validation AppError with field detail.
 	if pe, ok := errors.AsType[*ParseError](err); ok {
-		return NewError("invalid params").
+		return Err("invalid params").
 			WithFields(&FieldError{Field: pe.Src + "." + pe.Key, Message: err.Error(), Value: pe.Got}).
 			Validation()
 	}
 	if me, ok := errors.AsType[*MissingParamError](err); ok {
-		return NewError("invalid params").
+		return Err("invalid params").
 			WithFields(&FieldError{Field: me.Src + "." + me.Key, Message: err.Error()}).
 			Validation()
 	}
 
 	// 3. Body decode error — map to bad request.
 	if be, ok := errors.AsType[*BodyError](err); ok {
-		return NewError(be.Error()).BadRequest()
+		return ErrBadRequest(be.Error())
 	}
 
 	// 4. Mapper registered.
@@ -101,7 +101,7 @@ func resolveAppError(err error) *AppError {
 		"Register one via fun.RegisterAppErrorMapper. Raw error: %v", err)
 
 	return &AppError{
-		Code:    ErrInternal,
+		Code:    CodeInternal,
 		Message: err.Error(),
 		Err:     err,
 	}

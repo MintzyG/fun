@@ -68,7 +68,7 @@ func (c *Collector) Fail() *AppError {
 	for i, e := range c.errors {
 		fields[i] = e
 	}
-	return NewError("invalid params").WithFields(fields...).Validation()
+	return Err("invalid params").WithFields(fields...).Validation()
 }
 
 // ── collectedValue typed extractors ─────────────────────────────────────────

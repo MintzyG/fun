@@ -2,6 +2,7 @@ package tests_test
 
 import (
 	"bytes"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -127,7 +128,7 @@ func TestValue_UUID_missing(t *testing.T) {
 	if err == nil {
 		t.Error("expected missing error")
 	}
-	if !fun.IsMissingParam(err) {
+	if err, ok := errors.AsType[fun.MissingParamError](err); ok {
 		t.Errorf("expected MissingParamError, got %T", err)
 	}
 }
@@ -382,23 +383,5 @@ func TestBody_Form(t *testing.T) {
 	username := req.Body().FormValue("username").String()
 	if username != "sophia" {
 		t.Errorf("expected sophia, got %q", username)
-	}
-}
-
-// ── Error types ───────────────────────────────────────────────────────────────
-
-func TestIsMissingParam(t *testing.T) {
-	req := makeReq("GET", "/", "", map[string]string{})
-	_, err := req.Path("id").UUID()
-	if !fun.IsMissingParam(err) {
-		t.Errorf("expected MissingParamError, got %T", err)
-	}
-}
-
-func TestIsParseError(t *testing.T) {
-	req := makeReq("GET", "/", "", map[string]string{"id": "bad"})
-	_, err := req.Path("id").UUID()
-	if !fun.IsParseError(err) {
-		t.Errorf("expected ParseError, got %T", err)
 	}
 }

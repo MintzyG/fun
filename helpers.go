@@ -25,7 +25,7 @@ func (s *sizeEstimator) Write(p []byte) (n int, err error) {
 
 func (r *Response) estimateSize() (int, error) {
 	if r == nil {
-		log.Println("WARNING: estimateSize called on nil Response")
+		log.Println("[fun] WARNING: estimateSize called on nil Response")
 		return 0, nil
 	}
 	estimator := &sizeEstimator{}
@@ -39,7 +39,7 @@ func (r *Response) estimateSize() (int, error) {
 // validateResponseSize checks if the response size is within limits
 func (r *Response) validateResponseSize() error {
 	if r == nil {
-		log.Println("WARNING: validateResponseSize called on nil Response")
+		log.Println("[fun] WARNING: validateResponseSize called on nil Response")
 		return nil
 	}
 	config := r.getResponseConfig()
@@ -64,7 +64,7 @@ func (r *Response) validateResponseSize() error {
 
 func (r *Response) GetResponseStats() map[string]any {
 	if r == nil {
-		log.Println("WARNING: GetResponseStats called on nil Response")
+		log.Println("[fun] WARNING: GetResponseStats called on nil Response")
 		return nil
 	}
 	data, _ := json.Marshal(r)
@@ -78,7 +78,7 @@ func (r *Response) GetResponseStats() map[string]any {
 
 func (r *Response) IsWithinLimits() bool {
 	if r == nil {
-		log.Println("WARNING: IsWithinLimits called on nil Response")
+		log.Println("[fun] WARNING: IsWithinLimits called on nil Response")
 		return true
 	}
 	config := r.getResponseConfig()

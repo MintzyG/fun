@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/MintzyG/FastUtilitiesNet/response"
+	"github.com/MintzyG/FastUtilitiesNet"
 )
 
 // CheckFunc is a named readiness check.
@@ -73,13 +73,13 @@ func (h *ReadyHandler) Handle(w http.ResponseWriter, r *http.Request) {
 
 	if !healthy {
 		payload.Status = "unhealthy"
-		response.ServiceUnavailable("unhealthy").WithData(payload).
+		fun.ServiceUnavailable("unhealthy").WithData(payload).
 			WithContentType("application/json").
 			Send(w)
 		return
 	}
 
-	response.OK("healthy").WithData(payload).
+	fun.OK("healthy").WithData(payload).
 		WithContentType("application/json").
 		Send(w)
 }

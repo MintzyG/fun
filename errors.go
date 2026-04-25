@@ -1,17 +1,10 @@
 package fun
 
 import (
-	"errors"
 	"fmt"
 )
 
 // ── Internal library errors ──────────────────────────────────────────────────
-
-var (
-	ErrSizeLimitExceeded = errors.New("size limit exceeded")
-	ErrEncodingFailed    = errors.New("encoding failed")
-	ErrInterceptorFailed = errors.New("interceptor error")
-)
 
 type SizeLimitError struct {
 	Size int
@@ -70,7 +63,7 @@ type MissingParamError struct {
 	Src string // "path" | "query" | "header" | "form"
 }
 
-func (e *MissingParamError) Error() string {
+func (e MissingParamError) Error() string {
 	return fmt.Sprintf("%s param %q is required", e.Src, e.Key)
 }
 
@@ -96,18 +89,3 @@ func (e *BodyError) Error() string {
 }
 
 func (e *BodyError) Unwrap() error { return e.Inner }
-
-func IsBodyError(err error) bool {
-	var t *BodyError
-	return errors.As(err, &t)
-}
-
-func IsMissingParam(err error) bool {
-	var t *MissingParamError
-	return errors.As(err, &t)
-}
-
-func IsParseError(err error) bool {
-	var t *ParseError
-	return errors.As(err, &t)
-}
