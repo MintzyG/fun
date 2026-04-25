@@ -24,7 +24,6 @@ import (
 	"unicode"
 
 	"github.com/MintzyG/FastUtilitiesNet"
-	fun "github.com/MintzyG/FastUtilitiesNet"
 	"github.com/go-playground/validator/v10"
 )
 
@@ -74,7 +73,7 @@ func (b *Binder) Limit(maxBytes int64) *Binder {
 //
 //	// strict mode — unknown fields are rejected
 //	if err := bind.Body(req).Bind(&input, true); err != nil { ... }
-func (b *Binder) Bind(dst any, strict ...bool) *FUN.AppError {
+func (b *Binder) Bind(dst any, strict ...bool) *fun.AppError {
 	var decodeErr error
 	if len(strict) > 0 && strict[0] {
 		decodeErr = b.body.IntoStrict(dst)
@@ -82,7 +81,7 @@ func (b *Binder) Bind(dst any, strict ...bool) *FUN.AppError {
 		decodeErr = b.body.Into(dst)
 	}
 	if decodeErr != nil {
-		return FUN.NewError(decodeErr.Error()).BadRequest()
+		return fun.NewError(decodeErr.Error()).BadRequest()
 	}
 
 	validatorMu.RLock()
@@ -95,7 +94,7 @@ func (b *Binder) Bind(dst any, strict ...bool) *FUN.AppError {
 
 	if err := v.Struct(dst); err != nil {
 		fields := validationErrsToFields(err)
-		return FUN.NewError("invalid body").WithFields(fields...).Validation()
+		return fun.NewError("invalid body").WithFields(fields...).Validation()
 	}
 
 	return nil

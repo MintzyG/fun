@@ -1,4 +1,4 @@
-package FUN
+package fun
 
 import (
 	"errors"

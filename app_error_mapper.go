@@ -1,4 +1,4 @@
-package FUN
+package fun
 
 import (
 	"errors"
@@ -39,16 +39,18 @@ func ResetAppErrorMapper() {
 
 // Error resolves err into a *Response ready to be sent.
 //
-//	user, err := svc.GetUser(ctx, id)
+//	id, err := req.Path("id").UUID()
 //	if err != nil {
-//	    response.Error(err).Send(w)
+//	    fun.Error(err).Send(w)
 //	    return
 //	}
 //
 // Resolution order:
 //  1. err is already an *AppError — use it directly.
-//  2. A mapper is registered — delegate to it.
-//  3. No mapper — log a warning and wrap as ErrInternal.
+//  2. err is a *ParseError or *MissingParamError — mapped to a validation AppError.
+//  3. err is a *BodyError — mapped to a bad request AppError.
+//  4. A mapper is registered — delegate to it.
+//  5. No mapper — log a warning and wrap as ErrInternal.
 func Error(err error) *Response {
 	return resolveAppError(err).toResponse()
 }
@@ -66,7 +68,24 @@ func resolveAppError(err error) *AppError {
 		return ae
 	}
 
-	// 2. Mapper registered.
+	// 2. Param errors — map to validation AppError with field detail.
+	if pe, ok := errors.AsType[*ParseError](err); ok {
+		return NewError("invalid params").
+			WithFields(&FieldError{Field: pe.Src + "." + pe.Key, Message: err.Error(), Value: pe.Got}).
+			Validation()
+	}
+	if me, ok := errors.AsType[*MissingParamError](err); ok {
+		return NewError("invalid params").
+			WithFields(&FieldError{Field: me.Src + "." + me.Key, Message: err.Error()}).
+			Validation()
+	}
+
+	// 3. Body decode error — map to bad request.
+	if be, ok := errors.AsType[*BodyError](err); ok {
+		return NewError(be.Error()).BadRequest()
+	}
+
+	// 4. Mapper registered.
 	appErrorMapperMu.RLock()
 	mapper := appErrorMapper
 	appErrorMapperMu.RUnlock()
@@ -77,9 +96,9 @@ func resolveAppError(err error) *AppError {
 		}
 	}
 
-	// 3. No mapper — warn and expose raw message.
-	log.Printf("WARNING: response.Error called with an unmapped error and no AppErrorMapper registered. "+
-		"Register one via response.RegisterAppErrorMapper. Raw error: %v", err)
+	// 5. No mapper — warn and expose raw message.
+	log.Printf("WARNING: fun.Error called with an unmapped error and no AppErrorMapper registered. "+
+		"Register one via fun.RegisterAppErrorMapper. Raw error: %v", err)
 
 	return &AppError{
 		Code:    ErrInternal,
