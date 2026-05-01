@@ -37,24 +37,6 @@ func ResetAppErrorMapper() {
 	appErrorMapper = nil
 }
 
-// Error resolves err into a *Response ready to be sent.
-//
-//	id, err := req.Path("id").UUID()
-//	if err != nil {
-//	    fun.Error(err).Send(w)
-//	    return
-//	}
-//
-// Resolution order:
-//  1. err is already an *AppError — use it directly.
-//  2. err is a *ParseError or *MissingParamError — mapped to a validation AppError.
-//  3. err is a *BodyError — mapped to a bad request AppError.
-//  4. A mapper is registered — delegate to it.
-//  5. No mapper — log a warning and wrap as ErrInternal.
-func Error(err error) *Response {
-	return resolveAppError(err).toResponse()
-}
-
 func resolveAppError(err error) *AppError {
 	if err == nil {
 		return &AppError{

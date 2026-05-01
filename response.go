@@ -9,17 +9,14 @@ import (
 )
 
 type Response struct {
-	Module         string          `json:"module,omitempty"`
+	Code           int             `json:"code,omitempty"`
 	Message        string          `json:"message,omitempty"`
 	Data           any             `json:"data,omitempty"`
-	Trace          []string        `json:"trace,omitempty"`
-	Timestamp      time.Time       `json:"timestamp,omitempty"`
-	PaginationData *PaginationMeta `json:"pagination,omitempty"`
-	Code           int             `json:"code,omitempty"`
-	ErrorID        string          `json:"error_id,omitempty"`
 	AppError       *AppError       `json:"error,omitempty"`
+	PaginationData *PaginationMeta `json:"pagination,omitempty"`
+	Timestamp      time.Time       `json:"timestamp,omitempty"`
+	Module         string          `json:"module,omitempty"`
 	ContentType    string          `json:"-"`
-	TracePrefix    string          `json:"-"`
 	config         Config          `json:"-"`
 	hasConfig      bool            `json:"-"`
 }
@@ -91,24 +88,6 @@ func (r *Response) WithData(data any) *Response {
 		return nil
 	}
 	r.Data = data
-	return r
-}
-
-func (r *Response) WithTracePrefix(prefix string) *Response {
-	if r == nil {
-		log.Println("[fun] WARNING: WithTracePrefix called on nil Response")
-		return nil
-	}
-	r.TracePrefix = prefix
-	return r
-}
-
-func (r *Response) WithErrID(id string) *Response {
-	if r == nil {
-		log.Println("[fun] WARNING: WithErrID called on nil Response")
-		return nil
-	}
-	r.ErrorID = id
 	return r
 }
 

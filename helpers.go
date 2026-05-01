@@ -70,7 +70,6 @@ func (r *Response) GetResponseStats() map[string]any {
 	data, _ := json.Marshal(r)
 	return map[string]any{
 		"size_bytes":   len(data),
-		"trace_count":  len(r.Trace),
 		"content_type": r.ContentType,
 		"status_code":  r.Code,
 	}
@@ -82,10 +81,6 @@ func (r *Response) IsWithinLimits() bool {
 		return true
 	}
 	config := r.getResponseConfig()
-
-	if len(r.Trace) > config.MaxTraceSize {
-		return false
-	}
 
 	if config.EnableSizeValidation {
 		if err := r.validateResponseSize(); err != nil {
