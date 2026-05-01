@@ -27,29 +27,6 @@ func skipRoute(w http.ResponseWriter, r *http.Request, next http.Handler, skipPr
 	}
 }
 
-// WithSearch allows an optional full-text search param plus any extra qualifier params.
-// All listed params are allowed but none are required.
-//
-//	r.With(mw.WithSearch("q", "lang")).Get("/search", handler)
-func WithSearch(params ...string) func(http.Handler) http.Handler {
-	return chain(QueryAllow(params...))
-}
-
-// WithSorting allows sort and order params with an optional default order value.
-// sortParam and orderParam are the query param names; defaultOrder is applied if
-// order is absent (pass "" to skip the default).
-//
-//	r.With(mw.WithSorting("sort", "order", "asc")).Get("/items", handler)
-func WithSorting(sortParam, orderParam, defaultOrder string) func(http.Handler) http.Handler {
-	mws := []func(http.Handler) http.Handler{
-		QueryAllow(sortParam, orderParam),
-	}
-	if defaultOrder != "" {
-		mws = append(mws, QueryDefault(orderParam, defaultOrder))
-	}
-	return chain(mws...)
-}
-
 // chain composes multiple middleware into one, applied left to right.
 func chain(mws ...func(http.Handler) http.Handler) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
