@@ -90,6 +90,14 @@ func (cv *collectedValue) StringOr(fallback string) string {
 	return cv.v.StringOr(fallback)
 }
 
+func (cv *collectedValue) StringOpt() (string, bool) {
+	return cv.v.StringOpt()
+}
+
+func (cv *collectedValue) StringPtr() *string {
+	return cv.v.StringPtr()
+}
+
 func (cv *collectedValue) Int() int {
 	n, err := cv.v.Int()
 	cv.record(err)

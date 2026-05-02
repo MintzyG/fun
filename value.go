@@ -34,6 +34,29 @@ func (v Value) StringOr(fallback string) string {
 	return v.raw
 }
 
+// StringOpt returns the string value and whether it is present and non-empty.
+// Returns ("", false) if the value is missing or empty.
+//
+// This is useful for optional parameters where you need to distinguish between
+// "not provided" and an actual value without treating absence as an error.
+func (v Value) StringOpt() (string, bool) {
+	if v.missing || v.raw == "" {
+		return "", false
+	}
+	return v.raw, true
+}
+
+// StringPtr returns a pointer to the string value, or nil if missing or empty.
+//
+// This is useful for optional fields where nil represents absence.
+func (v Value) StringPtr() *string {
+	str, ok := v.StringOpt()
+	if !ok {
+		return nil
+	}
+	return &str
+}
+
 // Required returns an error if the value is missing or empty.
 func (v Value) Required() error {
 	if v.missing || v.raw == "" {
