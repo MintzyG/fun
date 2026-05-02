@@ -98,6 +98,10 @@ func (cv *collectedValue) StringPtr() *string {
 	return cv.v.StringPtr()
 }
 
+func (cv *collectedValue) StringRequired() (string, error) {
+	return cv.v.StringRequired()
+}
+
 func (cv *collectedValue) Int() int {
 	n, err := cv.v.Int()
 	cv.record(err)

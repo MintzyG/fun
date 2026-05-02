@@ -57,6 +57,17 @@ func (v Value) StringPtr() *string {
 	return &str
 }
 
+// StringRequired returns the string value or a MissingParamError if absent or empty.
+//
+//	tok, err := req.Query("token").StringRequired()
+//	if fun.Bail(w, err) { return }
+func (v Value) StringRequired() (string, error) {
+	if v.missing || v.raw == "" {
+		return "", &MissingParamError{Key: v.key, Src: v.src}
+	}
+	return v.raw, nil
+}
+
 // Required returns an error if the value is missing or empty.
 func (v Value) Required() error {
 	if v.missing || v.raw == "" {
