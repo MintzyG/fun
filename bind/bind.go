@@ -46,39 +46,17 @@ func SetValidator(v *validator.Validate) {
 	globalValidator = v
 }
 
-// Binder wraps a BodyReader and adds Bind.
-type Binder struct {
-	body *fun.BodyReader
-}
-
-// Body wraps a BodyReader for decode+validate.
-func Body(req *fun.Request) *Binder {
-	return &Binder{body: req.Body()}
-}
-
-// Limit caps how many bytes are read. Mirrors BodyReader.Limit.
-func (b *Binder) Limit(maxBytes int64) *Binder {
-	return &Binder{body: b.body.Limit(maxBytes)}
-}
-
-// Bind decodes the JSON body into dst and validates it.
-// Lenient by default (unknown fields ignored). Pass true to enable strict mode.
-// Returns nil on success, or a *AppError with field-level detail ready for
-// response.Error().
+// Into decodes and validates the JSON body into dst.
+// Pass true to reject unknown fields (strict mode).
 //
-//	if err := bind.Body(req).Bind(&input); err != nil {
-//	    response.Error(err).Send(w)
-//	    return
-//	}
-//
-//	// strict mode — unknown fields are rejected
-//	if err := bind.Body(req).Bind(&input, true); err != nil { ... }
-func (b *Binder) Bind(dst any, exact ...bool) *fun.AppError {
+//	if err := bind.Into(req, &input); err != nil { ... }
+//	if err := bind.Into(req, &input, true); err != nil { ... }
+func Into(req *fun.Request, dst any, exact ...bool) *fun.AppError {
 	var decodeErr error
 	if len(exact) > 0 && exact[0] {
-		decodeErr = b.body.IntoExact(dst)
+		decodeErr = req.Body().IntoExact(dst)
 	} else {
-		decodeErr = b.body.Into(dst)
+		decodeErr = req.Body().Into(dst)
 	}
 	if decodeErr != nil {
 		return fun.ErrBadRequest(decodeErr.Error())
@@ -94,7 +72,7 @@ func (b *Binder) Bind(dst any, exact ...bool) *fun.AppError {
 
 	if err := v.Struct(dst); err != nil {
 		fields := validationErrsToFields(err)
-		return fun.Err("invalid body").WithFields(fields...).Validation()
+		return fun.Err("invalid request body").WithFields(fields...).Validation()
 	}
 
 	return nil
@@ -161,6 +139,9 @@ func passwdFieldErrors(fe validator.FieldError) []any {
 	}
 
 	var out []any
+	if len(password) < 8 {
+		out = append(out, &fun.FieldError{Field: fe.Field(), Message: "must be at least 8 characters long"})
+	}
 	if !hasUpper {
 		out = append(out, &fun.FieldError{Field: fe.Field(), Message: "must contain at least one uppercase letter"})
 	}
