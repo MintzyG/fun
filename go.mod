@@ -1,4 +1,4 @@
-module github.com/MintzyG/FastUtilitiesNet
+module github.com/MintzyG/fun
 
 go 1.26.2
 
