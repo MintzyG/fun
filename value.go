@@ -147,6 +147,40 @@ func (v Value) UUIDOr(fallback uuid.UUID) uuid.UUID {
 	return id
 }
 
+// UUIDOpt parses the value as a UUID and reports whether it is present and valid.
+//
+// It returns (uuid, true) only if the value is non-empty, parses successfully,
+// and is not uuid.Nil. Otherwise, it returns (uuid.Nil, false).
+//
+// This is useful for optional parameters where you need to distinguish between
+// “not provided / invalid” and a valid UUID without treating it as an error.
+func (v Value) UUIDOpt() (uuid.UUID, bool) {
+	if v.missing || v.raw == "" {
+		return uuid.Nil, false
+	}
+
+	id, err := uuid.Parse(v.raw)
+	if err != nil || id == uuid.Nil {
+		return uuid.Nil, false
+	}
+
+	return id, true
+}
+
+// UUIDPtr parses the value as a UUID and returns a pointer to it.
+//
+// It returns a non-nil *uuid.UUID only if the value is present, valid,
+// and not uuid.Nil. Otherwise, it returns nil.
+//
+// This is useful for optional fields where nil represents absence.
+func (v Value) UUIDPtr() *uuid.UUID {
+	id, ok := v.UUIDOpt()
+	if !ok {
+		return nil
+	}
+	return &id
+}
+
 // Time parses the value using the given layout (e.g. time.RFC3339).
 func (v Value) Time(layout string) (time.Time, error) {
 	if v.missing {
