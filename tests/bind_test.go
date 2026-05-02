@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	fun "github.com/MintzyG/FastUtilitiesNet"
-	"github.com/MintzyG/FastUtilitiesNet/bind"
+	"github.com/MintzyG/fun"
+	"github.com/MintzyG/fun/bind"
 	"github.com/go-playground/validator/v10"
 )
 

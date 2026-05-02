@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"runtime/debug"
 
-	fun "github.com/MintzyG/FastUtilitiesNet"
+	"github.com/MintzyG/fun"
 	"go.uber.org/zap"
 )
 

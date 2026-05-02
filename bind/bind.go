@@ -23,7 +23,7 @@ import (
 	"sync"
 	"unicode"
 
-	"github.com/MintzyG/FastUtilitiesNet"
+	"github.com/MintzyG/fun"
 	"github.com/go-playground/validator/v10"
 )
 

@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	fun "github.com/MintzyG/FastUtilitiesNet"
+	"github.com/MintzyG/fun"
 )
 
 // ── helpers ──────────────────────────────────────────────────────────────────

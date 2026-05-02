@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/MintzyG/FastUtilitiesNet"
+	"github.com/MintzyG/fun"
 )
 
 // CheckFunc is a named readiness check.

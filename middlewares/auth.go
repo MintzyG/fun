@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/MintzyG/FastUtilitiesNet"
+	"github.com/MintzyG/fun"
 	"github.com/golang-jwt/jwt/v5"
 )
 

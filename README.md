@@ -18,7 +18,7 @@ It is designed to be lightweight, and easily configurable to fit the needs of yo
 
 To install the library, use go get:  
 ```bash
-go get github.com/MintzyG/GoResponse/response
+go get github.com/MintzyG/fun
 ```
 
 ## **🚀 Quick Start**
@@ -33,7 +33,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/MintzyG/GoResponse/response"
+	"github.com/MintzyG/fun"
 )
 
 type User struct {

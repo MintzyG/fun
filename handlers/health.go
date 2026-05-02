@@ -3,7 +3,7 @@ package handlers
 import (
 	"net/http"
 
-	"github.com/MintzyG/FastUtilitiesNet"
+	"github.com/MintzyG/fun"
 )
 
 // HealthHandler is a liveness handler.

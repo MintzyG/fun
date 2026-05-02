@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"sync"
 
-	fun "github.com/MintzyG/FastUtilitiesNet"
+	"github.com/MintzyG/fun"
 	"golang.org/x/time/rate"
 )
 

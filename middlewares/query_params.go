@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	fun "github.com/MintzyG/FastUtilitiesNet"
+	"github.com/MintzyG/fun"
 	"github.com/google/uuid"
 )
 
