@@ -63,6 +63,14 @@ type AppError struct {
 func (e *AppError) Error() string { return fmt.Sprintf("%s: %s", e.Code, e.Message) }
 func (e *AppError) Unwrap() error { return e.Err }
 
+// Is reports whether any error in the chain matches the given ErrorCode.
+func Is(err error, code ErrorCode) bool {
+	if appErr, ok := errors.AsType[*AppError](err); ok {
+		return appErr.Code == code
+	}
+	return false
+}
+
 func (e *AppError) httpStatus() int {
 	if s, ok := appErrorStatusMap[e.Code]; ok {
 		return s
