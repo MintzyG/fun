@@ -122,7 +122,7 @@ func (cv *collectedValue) UUID() uuid.UUID {
 }
 
 func (cv *collectedValue) UUIDOr(fallback uuid.UUID) uuid.UUID {
-	return cv.UUIDOr(fallback)
+	return cv.v.UUIDOr(fallback)
 }
 
 func (cv *collectedValue) Enum(allowed ...string) string {
