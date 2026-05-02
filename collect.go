@@ -125,6 +125,14 @@ func (cv *collectedValue) UUIDOr(fallback uuid.UUID) uuid.UUID {
 	return cv.v.UUIDOr(fallback)
 }
 
+func (cv *collectedValue) UUIDOpt() (uuid.UUID, bool) {
+	return cv.v.UUIDOpt()
+}
+
+func (cv *collectedValue) UUIDPtr() *uuid.UUID {
+	return cv.v.UUIDPtr()
+}
+
 func (cv *collectedValue) Enum(allowed ...string) string {
 	s, err := cv.v.Enum(allowed...)
 	cv.record(err)
