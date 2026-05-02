@@ -121,6 +121,10 @@ func (cv *collectedValue) UUID() uuid.UUID {
 	return id
 }
 
+func (cv *collectedValue) UUIDOr(fallback uuid.UUID) uuid.UUID {
+	return cv.UUIDOr(fallback)
+}
+
 func (cv *collectedValue) Enum(allowed ...string) string {
 	s, err := cv.v.Enum(allowed...)
 	cv.record(err)

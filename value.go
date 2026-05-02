@@ -138,6 +138,15 @@ func (v Value) UUID() (uuid.UUID, error) {
 	return id, nil
 }
 
+// UUIDOr parses the value as UUID, returning fallback on error.
+func (v Value) UUIDOr(fallback uuid.UUID) uuid.UUID {
+	id, err := v.UUID()
+	if err != nil || id == uuid.Nil {
+		return fallback
+	}
+	return id
+}
+
 // Time parses the value using the given layout (e.g. time.RFC3339).
 func (v Value) Time(layout string) (time.Time, error) {
 	if v.missing {
