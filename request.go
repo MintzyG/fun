@@ -90,6 +90,17 @@ func (r *Request) Header(key string) Value {
 	return Value{key: key, raw: raw, src: "header", missing: raw == ""}
 }
 
+// Cookie returns a Value for a request cookie.
+//
+//	tok := req.Cookie("refresh_token").String()
+func (r *Request) Cookie(name string) Value {
+	c, err := r.raw.Cookie(name)
+	if err != nil {
+		return Value{key: name, raw: "", src: "cookie", missing: true}
+	}
+	return Value{key: name, raw: c.Value, src: "cookie", missing: c.Value == ""}
+}
+
 // Body returns a BodyReader for decoding the request body.
 func (r *Request) Body() *BodyReader {
 	return &BodyReader{r: r.raw}

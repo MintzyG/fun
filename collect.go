@@ -55,6 +55,11 @@ func (c *Collector) Header(key string) *collectedValue {
 	return c.collect(c.req.Header(key))
 }
 
+// Cookie returns a collectedValue for a cookie.
+func (c *Collector) Cookie(name string) *collectedValue {
+	return c.collect(c.req.Cookie(name))
+}
+
 // HasErrors reports whether any errors have been collected.
 func (c *Collector) HasErrors() bool { return len(c.errors) > 0 }
 
