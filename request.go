@@ -130,6 +130,19 @@ func (r *Request) Into(dst any, exact ...bool) error {
 	return r.Body().Into(dst)
 }
 
+// BailInto decodes the JSON body into dst and sends an error response if it fails.
+// Pass true to reject unknown fields (strict mode).
+// Returns true if decoding failed and the response was sent.
+//
+//	if fun.BailInto(w, req, &input) { return }
+//	if fun.BailInto(w, req, &input, true) { return }
+func BailInto(w http.ResponseWriter, req *Request, dst any, exact ...bool) bool {
+	if err := req.Into(dst, exact...); err != nil {
+		return Bail(w, err)
+	}
+	return false
+}
+
 // ClientIP returns the real client IP, checking in order:
 // CF-Connecting-IP → X-Forwarded-For (leftmost) → RemoteAddr
 func (r *Request) ClientIP() string {

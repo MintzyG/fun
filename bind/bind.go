@@ -18,6 +18,7 @@ package bind
 import (
 	"errors"
 	"fmt"
+	"net/http"
 	"reflect"
 	"strings"
 	"sync"
@@ -76,6 +77,19 @@ func Into(req *fun.Request, dst any, exact ...bool) *fun.AppError {
 	}
 
 	return nil
+}
+
+// BailInto decodes and validates the JSON body into dst, sending an error response if it fails.
+// Pass true to reject unknown fields (strict mode).
+// Returns true if decoding or validation failed and the response was sent.
+//
+//	if bind.BailInto(w, req, &input) { return }
+//	if bind.BailInto(w, req, &input, true) { return }
+func BailInto(w http.ResponseWriter, req *fun.Request, dst any, exact ...bool) bool {
+	if err := Into(req, dst, exact...); err != nil {
+		return fun.Bail(w, err)
+	}
+	return false
 }
 
 // validationErrsToFields converts validator.ValidationErrors into
