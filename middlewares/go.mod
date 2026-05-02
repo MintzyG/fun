@@ -1,4 +1,4 @@
-module middlewares
+module github.com/MintzyG/fun/middlewares
 
 go 1.26.2
 

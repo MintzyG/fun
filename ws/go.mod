@@ -1,4 +1,4 @@
-module ws
+module github.com/MintzyG/fun/ws
 
 go 1.26
 

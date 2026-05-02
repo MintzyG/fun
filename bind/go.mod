@@ -1,4 +1,4 @@
-module bind
+module github.com/MintzyG/fun/bind
 
 go 1.26.2
 
