@@ -3,6 +3,7 @@ package fun
 import (
 	"context"
 	"net/http"
+	"strings"
 )
 
 // Request wraps an *http.Request and exposes typed, ergonomic accessors
@@ -75,11 +76,22 @@ func (r *Request) Query(key string) Value {
 	return Value{key: key, raw: raw, src: "query", missing: raw == ""}
 }
 
-// QueryAll returns all values for a repeated query parameter.
+// QueryAll returns all values for a repeated and/or comma-separated query parameter.
 //
-//	tags := req.QueryAll("tag") // ?tag=a&tag=b → ["a", "b"]
+//	?tags=a&tags=b        → ["a", "b"]
+//	?tags=a,b,c           → ["a", "b", "c"]
+//	?tags=a,b&tags=c,d    → ["a", "b", "c", "d"]
 func (r *Request) QueryAll(key string) []string {
-	return r.raw.URL.Query()[key]
+	raw := r.raw.URL.Query()[key]
+	var result []string
+	for _, v := range raw {
+		for _, part := range strings.Split(v, ",") {
+			if s := strings.TrimSpace(part); s != "" {
+				result = append(result, s)
+			}
+		}
+	}
+	return result
 }
 
 // Header returns a Value for a request header.
