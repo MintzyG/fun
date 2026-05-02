@@ -117,3 +117,35 @@ func (r *Request) Cookie(name string) Value {
 func (r *Request) Body() *BodyReader {
 	return &BodyReader{r: r.raw}
 }
+
+// Into decodes the JSON body into dst.
+// Pass true to reject unknown fields (strict mode).
+//
+//	if err := req.Into(&input); err != nil { ... }
+//	if err := req.Into(&input, true); err != nil { ... }
+func (r *Request) Into(dst any, exact ...bool) error {
+	if len(exact) > 0 && exact[0] {
+		return r.Body().IntoExact(dst)
+	}
+	return r.Body().Into(dst)
+}
+
+// ClientIP returns the real client IP, checking in order:
+// CF-Connecting-IP → X-Forwarded-For (leftmost) → RemoteAddr
+func (r *Request) ClientIP() string {
+	if ip := r.raw.Header.Get("CF-Connecting-IP"); ip != "" {
+		return ip
+	}
+	if xff := r.raw.Header.Get("X-Forwarded-For"); xff != "" {
+		if i := strings.Index(xff, ","); i > 0 {
+			return strings.TrimSpace(xff[:i])
+		}
+		return strings.TrimSpace(xff)
+	}
+	// strip port from RemoteAddr
+	addr := r.raw.RemoteAddr
+	if i := strings.LastIndex(addr, ":"); i > 0 {
+		return addr[:i]
+	}
+	return addr
+}
