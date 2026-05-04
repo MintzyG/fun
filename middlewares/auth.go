@@ -71,7 +71,7 @@ func (m *Middleware[C]) JWT() func(http.Handler) http.Handler {
 
 			claims, err := m.KeyFunc(ctx, tokenStr)
 			if err != nil {
-				writeUnauthorized(w, "invalid token")
+				writeUnauthorized(w, err.Error())
 				return
 			}
 
@@ -126,7 +126,7 @@ func (m *Middleware[C]) AnyAuth() func(http.Handler) http.Handler {
 				return
 			}
 
-			writeUnauthorized(w, "missing credentials")
+			writeUnauthorized(w, "no authentication provided: expected X-API-Key or Authorization: Bearer <token>")
 		})
 	}
 }
