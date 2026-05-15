@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -18,13 +19,13 @@ func resolveRoutePattern(r *http.Request) string {
 	return "not_found"
 }
 
-func skipRoute(w http.ResponseWriter, r *http.Request, next http.Handler, skipPrefixes []string) {
+func shouldSkip(r *http.Request, skipPrefixes []string) bool {
 	for _, prefix := range skipPrefixes {
-		if len(r.URL.Path) >= len(prefix) && r.URL.Path[:len(prefix)] == prefix {
-			next.ServeHTTP(w, r)
-			return
+		if strings.HasPrefix(r.URL.Path, prefix) {
+			return true
 		}
 	}
+	return false
 }
 
 // chain composes multiple middleware into one, applied left to right.

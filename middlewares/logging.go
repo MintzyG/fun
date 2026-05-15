@@ -34,7 +34,10 @@ func (c *Config) requestIDHeader() string {
 func Logs(cfg Config) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			skipRoute(w, r, next, cfg.SkipPrefixes)
+			if shouldSkip(r, cfg.SkipPrefixes) {
+				next.ServeHTTP(w, r)
+				return
+			}
 
 			start := time.Now()
 			ww := &statusWriter{ResponseWriter: w, status: http.StatusOK}
