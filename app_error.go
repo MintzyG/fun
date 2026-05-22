@@ -52,35 +52,43 @@ type DebugInfo struct {
 // AppError is a structured application error that carries semantic meaning
 // and maps directly onto an HTTP response shape.
 type AppError struct {
-	Code    ErrorCode      `json:"code"`             // Code is a machine-readable sentinel (e.g. ErrNotFound).
-	Message string         `json:"message"`          // Message is the human-readable description sent to the client.
-	Fields  []FieldError   `json:"fields,omitempty"` // Fields holds field-level detail, typically for validation errors.
-	Meta    map[string]any `json:"meta,omitempty"`   // Meta holds arbitrary key/value context (request IDs, resource names, …).
-	Debug   *DebugInfo     `json:"debug,omitempty"`  // Debug is only included in responses when Config.IsDevelopment is true.
-	Err     error          `json:"-"`                // Err is the underlying cause; used by errors.Is / errors.As chains.
+	Type   ErrorCode      `json:"type"`
+	Title  string         `json:"title"`
+	Detail string         `json:"detail,omitempty"`
+	Fields []FieldError   `json:"fields,omitempty"`
+	Meta   map[string]any `json:"meta,omitempty"`
+	Debug  *DebugInfo     `json:"debug,omitempty"`
+	Err    error          `json:"-"`
 }
 
-func (e *AppError) Error() string { return fmt.Sprintf("%s: %s", e.Code, e.Message) }
+func (e *AppError) Error() string { return fmt.Sprintf("%s: %s", e.Type, e.Title) }
+
 func (e *AppError) Unwrap() error { return e.Err }
 
 // Is reports whether any error in the chain matches the given ErrorCode.
 func Is(err error, code ErrorCode) bool {
 	if appErr, ok := errors.AsType[*AppError](err); ok {
-		return appErr.Code == code
+		return appErr.Type == code
 	}
 	return false
 }
 
 func (e *AppError) httpStatus() int {
-	if s, ok := appErrorStatusMap[e.Code]; ok {
+	if s, ok := appErrorStatusMap[e.Type]; ok {
 		return s
 	}
 	return http.StatusInternalServerError
 }
 
 func (e *AppError) toResponse() *Response {
-	r := base(e.httpStatus(), e.Message)
-	r.AppError = e
+	r := base(e.httpStatus(), e.Title)
+	r.Type = e.Type
+	r.Detail = e.Detail
+	r.Fields = e.Fields
+	r.Meta = e.Meta
+	if e.Debug != nil {
+		r.Meta["debug"] = e.Debug
+	}
 	return r
 }
 
@@ -90,6 +98,7 @@ func (e *AppError) toResponse() *Response {
 
 type AppErrorBuilder struct {
 	message string
+	detail  string
 	fields  []FieldError
 	meta    map[string]any
 	err     error
@@ -140,13 +149,19 @@ func (b *AppErrorBuilder) WithErr(err error) *AppErrorBuilder {
 	return b
 }
 
+func (b *AppErrorBuilder) Detail(detail string) *AppErrorBuilder {
+	b.detail = detail
+	return b
+}
+
 func (b *AppErrorBuilder) build(code ErrorCode) *AppError {
 	return &AppError{
-		Code:    code,
-		Message: b.message,
-		Fields:  b.fields,
-		Meta:    b.meta,
-		Err:     b.err,
+		Type:   code,
+		Title:  b.message,
+		Detail: b.detail,
+		Fields: b.fields,
+		Meta:   b.meta,
+		Err:    b.err,
 	}
 }
 

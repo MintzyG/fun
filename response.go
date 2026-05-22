@@ -9,10 +9,14 @@ import (
 )
 
 type Response struct {
-	Code           int             `json:"code,omitempty"`
-	Message        string          `json:"message,omitempty"`
+	Status         int             `json:"status,omitempty"`
+	Title          string          `json:"title,omitempty"`
+	Type           ErrorCode       `json:"type,omitempty"`
+	Detail         string          `json:"detail,omitempty"`
+	Instance       string          `json:"instance,omitempty"`
 	Data           any             `json:"data,omitempty"`
-	AppError       *AppError       `json:"error,omitempty"`
+	Fields         []FieldError    `json:"fields,omitempty"`
+	Meta           map[string]any  `json:"meta,omitempty"`
 	PaginationData *PaginationMeta `json:"pagination,omitempty"`
 	Timestamp      time.Time       `json:"timestamp,omitempty"`
 	Module         string          `json:"module,omitempty"`
@@ -73,12 +77,12 @@ func (r *Response) WithModule(module string) *Response {
 	return r
 }
 
-func (r *Response) WithMsg(message string) *Response {
+func (r *Response) WithTitle(message string) *Response {
 	if r == nil {
 		log.Println("[fun] WARNING: WithMsg called on nil Response")
 		return nil
 	}
-	r.Message = message
+	r.Title = message
 	return r
 }
 
@@ -91,7 +95,7 @@ func (r *Response) WithData(data any) *Response {
 	return r
 }
 
-func (r *Response) WithCode(code int) *Response {
+func (r *Response) WithStatus(code int) *Response {
 	if r == nil {
 		log.Println("[fun] WARNING: WithCode called on nil Response")
 		return nil
@@ -100,7 +104,7 @@ func (r *Response) WithCode(code int) *Response {
 		log.Printf("[fun] WARNING: WithCode called with invalid status code %d: %v", code, err)
 		return r
 	}
-	r.Code = code
+	r.Status = code
 	return r
 }
 
@@ -131,18 +135,13 @@ func (r *Response) SendWithCtx(ctx context.Context, w http.ResponseWriter) {
 }
 
 func (r *Response) sendInternal(ctx context.Context, w http.ResponseWriter) {
-	if err := validateStatusCode(r.Code); err != nil {
-		log.Printf("[fun] WARNING: invalid status code %d: %v. Defaulting to 500.", r.Code, err)
-		r.Code = 500
+	if err := validateStatusCode(r.Status); err != nil {
+		log.Printf("[fun] WARNING: invalid status code %d: %v. Defaulting to 500.", r.Status, err)
+		r.Status = 500
 	}
 
 	if err := r.validateResponseSize(); err != nil {
 		log.Printf("[fun] WARNING: response size validation failed: %v. Sending anyway.", err)
-	}
-
-	// Strip AppError.Debug in non-development environments.
-	if r.AppError != nil && r.AppError.Debug != nil && !r.getResponseConfig().IsDevelopment {
-		r.AppError.Debug = nil
 	}
 
 	interceptorsMu.RLock()
@@ -155,14 +154,14 @@ func (r *Response) sendInternal(ctx context.Context, w http.ResponseWriter) {
 			continue
 		}
 		if ctx != context.Background() {
-			interceptor.Intercept(ctx, r, r.Code)
+			interceptor.Intercept(ctx, r, r.Status)
 		} else {
-			interceptor.InterceptSimple(r, r.Code)
+			interceptor.InterceptSimple(r, r.Status)
 		}
 	}
 
 	w.Header().Set("Content-Type", r.ContentType)
-	w.WriteHeader(r.Code)
+	w.WriteHeader(r.Status)
 
 	encoder := json.NewEncoder(w)
 	encoder.SetEscapeHTML(false)

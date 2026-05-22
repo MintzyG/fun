@@ -71,7 +71,7 @@ func (r *Response) GetResponseStats() map[string]any {
 	return map[string]any{
 		"size_bytes":   len(data),
 		"content_type": r.ContentType,
-		"status_code":  r.Code,
+		"status_code":  r.Status,
 	}
 }
 

@@ -6,21 +6,21 @@ import (
 	"time"
 )
 
-func base(code int, msg ...string) *Response {
+func base(code int, title ...string) *Response {
 	if err := validateStatusCode(code); err != nil {
 		log.Printf("[fun] WARNING: base called with invalid status code %d: %v. Defaulting to 500.", code, err)
 		code = 500
 	}
 
-	var message string
-	if len(msg) > 0 {
-		message = msg[0]
+	var t string
+	if len(title) > 0 {
+		t = title[0]
 	}
 
 	config := getConfig()
 	return &Response{
-		Code:        code,
-		Message:     message,
+		Status:      code,
+		Title:       t,
 		Timestamp:   time.Now(),
 		ContentType: config.DefaultContentType,
 		Module:      config.DefaultModule,

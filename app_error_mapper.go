@@ -40,8 +40,8 @@ func ResetAppErrorMapper() {
 func resolveAppError(err error) *AppError {
 	if err == nil {
 		return &AppError{
-			Code:    CodeInternal,
-			Message: "an unknown error occurred",
+			Type:  CodeInternal,
+			Title: "an unknown error occurred",
 		}
 	}
 
@@ -83,8 +83,8 @@ func resolveAppError(err error) *AppError {
 		"Register one via fun.RegisterAppErrorMapper. Raw error: %v", err)
 
 	return &AppError{
-		Code:    CodeInternal,
-		Message: err.Error(),
-		Err:     err,
+		Type:  CodeInternal,
+		Title: err.Error(),
+		Err:   err,
 	}
 }
