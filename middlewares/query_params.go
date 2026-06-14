@@ -140,6 +140,10 @@ func WithParams[T any](strict ...bool) func(http.Handler) http.Handler {
 				case uuid.UUID:
 					id := c.Query(key).UUID()
 					fieldVal.Set(reflect.ValueOf(id))
+
+				case *uuid.UUID:
+					id := c.Query(key).UUIDPtr()
+					fieldVal.Set(reflect.ValueOf(id))
 				}
 			}
 
